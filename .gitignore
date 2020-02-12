@@ -1,0 +1,6 @@
+*.nc
+archive/
+.idea/
+Test.ipynb
+.ipynb_checkpoints/
+__*
