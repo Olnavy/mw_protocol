@@ -4,6 +4,7 @@ Description to come
 
 ## Land sea mask <-> experiment table
 | Date (ka) | expt |
+| :-------- | ---: |
 | 0 | teada3 |
 | 0.5 | teaeb3 |
 | 1 | teadb3 |
@@ -53,8 +54,3 @@ Description to come
 | 25 | teadz3 |
 | 26 | teaea3 |
 
-         
-
-       
-
-         
