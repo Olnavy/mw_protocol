@@ -108,6 +108,20 @@ def spreading_method(discharge_mw, spread_regions, surface_matrix):
     return spreaded_mw
 
 
+def correction_waterfix(correction, wfix, surface_matrix):
+    """
+
+    :param spreaded_mw:
+    :param wfix:
+    :param surface_matrix:
+    :return:
+    """
+    d = 1000  # water density
+
+    return np.where(np.isnan(wfix+correction), 0, wfix+correction)/d*surface_matrix
+
+
+
 def convert_waterfix(wfix, discharge_mw, surface_matrix):
     """
 

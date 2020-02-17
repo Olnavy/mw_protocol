@@ -41,6 +41,12 @@ def fixing(ds_ref, mode_fixing, mode_smooth, start, end, lsm_name):
     else:
         print("The mode wasn't recognized.")
 
+def correcting():
+    """
+    Add the correction flux to the final waterfix file.
+    :return:
+    """
+    pass
 
 # ------------------------------------ #
 # ---------- SAVING METHODS ---------- #
