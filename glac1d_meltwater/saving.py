@@ -402,7 +402,9 @@ def drift_waterfix_patch(path_ref, expt_name, ds_wfix, start_date, end_date):
 def corrected_waterfix_patch(waterfix_patch, ds_lsm, ds_wfix):
     print(f"__ Creation of the corrected waterfix file")
     longitude, latitude, lsm = ds_lsm.longitude.values, ds_lsm.latitude.values, ds_lsm.lsm.values
+    
     wfix = ds_wfix.field672.isel(depth=0).isel(t=0).values[:, :-2]
-    corrected_waterfix = (waterfix_patch * (1 - lsm)) + wfix
-    new_shape = (ds_wfix.field672.shape[0], ds_wfix.field672.shape[1], ds_wfix.field672.shape[2], ds_wfix.field672.shape[3]-2)
-    return np.resize(corrected_waterfix, new_shape)
+    corrected_waterfix = np.zeros(wfix.shape)
+    corrected_waterfix[0,0,:,:-2] = (waterfix_patch * (1 - lsm)) + wfix
+    
+    return corrected_waterfix
