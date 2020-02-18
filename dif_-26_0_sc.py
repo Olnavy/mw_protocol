@@ -5,6 +5,7 @@ import spreading
 import saving
 import plotting
 import glac1d_toolbox as tb
+import numpy as np
 
 # import glac1d_meltwater.routing as routing
 # import glac1d_meltwater.spreading as spreading
@@ -37,8 +38,8 @@ for experiment in experiments:
     routed_path = f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/dif_-26_0/{experiment}.qrparm.GLAC1D_DEGLAC.nc"
     ds_routed = xr.open_dataset(routed_path, decode_times=False)
     lon, lat = ds_routed.longitude, ds_routed.latitude
-    routed_mw = saving.kgm2s_to_m3s(ds_routed.discharge, lon, lat)
-
+    routed_mw = np.where(np.isnan(ds_routed.discharge),0,saving.kgm2s_to_m3s(ds_routed.discharge, lon, lat))
+    
     spreaded_mw = spreading.spreading(routed_mw, ds_lsm, ds_wfix)
 
     saving.saving(spreaded_mw, ds_lsm, experiment, mode="corrected")
