@@ -403,8 +403,9 @@ def corrected_waterfix_patch(waterfix_patch, ds_lsm, ds_wfix):
     print(f"__ Creation of the corrected waterfix file")
     longitude, latitude, lsm = ds_lsm.longitude.values, ds_lsm.latitude.values, ds_lsm.lsm.values
     
-    wfix = ds_wfix.field672.isel(depth=0).isel(t=0).values[:, :-2]
-    corrected_waterfix = np.zeros(ds_wfix.field672.values.shape)
-    corrected_waterfix[0,0,:,:-2] = (waterfix_patch * (1 - lsm)) + wfix
+    wfix = ds_wfix.field672.values
+    corrected_waterfix = wfix
+    print(corrected_waterfix[0,0,:,:-2].shape, lsm.shape, wfix[0,0,:, :-2].shape)
+    corrected_waterfix[0,0,:,:-2] = (waterfix_patch * (1 - lsm)) + wfix[0,0,:, :-2]
     
     return corrected_waterfix
