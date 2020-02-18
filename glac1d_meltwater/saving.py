@@ -279,8 +279,7 @@ def save_corrected_waterfix(ds_wfix, corrected_waterfix, expt_name, start_date, 
     sav_path = f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/corrected_waterfix/{expt_name}.qrparam.waterfix.hadcm3.corrected.nc"
     print(f"____ Saving at: {sav_path}")
 
-    longitude, latitude, t, depth = ds_wfix.longitude.values[
-                                    :-2], ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
+    longitude, latitude, t, depth = ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
 
     # to netcdf
     ds = xr.Dataset({'field672': (('t', 'depth', 'latitude', 'longitude'), corrected_waterfix)},
@@ -405,7 +404,6 @@ def corrected_waterfix_patch(waterfix_patch, ds_lsm, ds_wfix):
     
     wfix = ds_wfix.field672.values
     corrected_waterfix = wfix
-    print(corrected_waterfix[0,0,:,:-2].shape, lsm.shape, wfix[0,0,:, :-2].shape)
     corrected_waterfix[0,0,:,:-2] = (waterfix_patch * (1 - lsm)) + wfix[0,0,:, :-2]
     
     return corrected_waterfix
