@@ -221,7 +221,7 @@ def processed_to_netcdf(processed_mw, processed_time, longitude, latitude, mode_
     """
 
     #
-    corrected_name = (corrected is True) * "s"
+    corrected_name = (corrected is True) * "c"
     
     sav_path = f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/{mode_smooth}_{start}_{end}_s{corrected_name}/" \
                f"{lsm_name}.qrparm.waterfix_GLAC1D_DEGLAC_s{corrected_name}.nc"
