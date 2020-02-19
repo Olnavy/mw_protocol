@@ -31,7 +31,7 @@ def saving(discharge_mw, ds_lsm, lsm_name, mode):
         print("The mode wasn't recognized.")
 
 
-def fixing(ds_ref, mode_fixing, mode_smooth, start, end, lsm_name):
+def fixing(ds_ref, mode_fixing, mode_smooth, start, end, lsm_name, corrected=False):
     print("__ Fixing algorithm")
 
     ref_mw, longitude, latitude, t_ref = \
@@ -39,7 +39,7 @@ def fixing(ds_ref, mode_fixing, mode_smooth, start, end, lsm_name):
 
     if mode_fixing == "time":
         processed_mw, processed_time = process_time(ref_mw, start, end, t_ref)
-        processed_to_netcdf(processed_mw, processed_time, longitude, latitude, mode_smooth, start, end, lsm_name)
+        processed_to_netcdf(processed_mw, processed_time, longitude, latitude, mode_smooth, start, end, lsm_name, corrected)
     else:
         print("The mode wasn't recognized.")
 
@@ -210,7 +210,7 @@ def corrected_to_netcdf(corrected_mw, lsm, longitude, latitude, lsm_name):
     ds.to_netcdf(sav_path)
 
 
-def processed_to_netcdf(processed_mw, processed_time, longitude, latitude, mode_smooth, start, end, lsm_name):
+def processed_to_netcdf(processed_mw, processed_time, longitude, latitude, mode_smooth, start, end, lsm_name, corrected=False):
     """
     Create default netcdf file with time from -26 to 0 and 100 time steps. To modify that use process_time.
     :param ds_mw: in kg/m2/s
@@ -221,7 +221,10 @@ def processed_to_netcdf(processed_mw, processed_time, longitude, latitude, mode_
     """
 
     #
-    sav_path = f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/{mode_smooth}_{start}_{end}_s/{lsm_name}.qrparm.waterfix_GLAC1D_DEGLAC_s.nc"
+    corrected_name = (corrected is True) * "s"
+    
+    sav_path = f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/{mode_smooth}_{start}_{end}_s{corrected_name}/" \
+               f"{lsm_name}.qrparm.waterfix_GLAC1D_DEGLAC_s{corrected_name}.nc"
     print(f"____ Saving at: {sav_path}")
 
     # to netcdf
@@ -305,8 +308,7 @@ def save_corrected_waterfix(ds_wfix, corrected_waterfix, expt_name, start_date, 
     ds['latitude'].attrs['units'] = 'degrees_north'
 
     ds.attrs['title'] = \
-        f"Corrected waterfix for {expt_name} based on the drift of 21k between {start_date} and {end_date} " \
-        f"with the 21kya land sea mask"
+        f"Corrected waterfix for {expt_name} based on the 21k eperiment drift between {start_date} and {end_date}."
     ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
 
     ds.to_netcdf(sav_path)
