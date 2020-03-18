@@ -54,6 +54,30 @@ def coordinates_to_indexes(lon_target, lat_target, longitudes, latitudes):
     return np.argmin(abs(longitudes - lon_target)), np.argmin(abs(latitudes - lat_target))
 
 
+def running_mean(data, n):
+    """
+    Running mean on n years for a 1D array. Only use the past values.
+
+    Parameters
+    ----------
+    data : list of numpy 1D array
+        data to process the running mean
+    n : int
+        number of years to perform the running mean
+    Returns
+    -------
+    list of numpy 1D array
+        new averaged data
+    """
+    mean = np.convolve(data, np.ones((n)), mode="full")
+    out_mean = np.zeros((len(data)))
+    for i in range(len(data)):
+        if i + 1 < n:
+            out_mean[i] = mean[i] / (i + 1)
+        else:
+            out_mean[i] = mean[i] / n
+    return out_mean
+
 # -------------------------------------- #
 # ---------- PLOTTING METHODS ---------- #
 # -------------------------------------- #
