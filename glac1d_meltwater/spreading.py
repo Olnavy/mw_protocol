@@ -375,7 +375,7 @@ def generate_collection_boxes():
 
     # USA East Coast
     collection_boxes["USECoast1"] = Box(37, 46, -70, -52)
-    collection_boxes["USECoast2"] = Box(32, 41, -80.5, -65)
+    collection_boxes["USECoast2"] = Box(32, 37, -70, -65)
     collection_boxes["USECoast3"] = Box(28.75, 40, -81, -70)
     collection_boxes["USECoast4"] = Box(40, 46, -52, -48)
     collection_boxes["USECoast5"] = Box(46, 50, -66, -58)
@@ -396,7 +396,7 @@ def generate_collection_boxes():
     # Gulf of Mexico
     collection_boxes["GoM1"] = Box(17.7, 28.75, -96.3, -80)
     # East Pacific
-    collection_boxes["EPac1"] = Box(50, 60, 191, 225.5)
+    collection_boxes["EPac1"] = Box(50, 60, 191, 215.5)
     collection_boxes["EPac2"] = Box(50, 60, 215.5, 225.5)
     collection_boxes["EPac3"] = Box(38.5, 60, 225.5, 234.5)
     collection_boxes["EPac4"] = Box(33.75, 38.5, 230, 260)
@@ -422,9 +422,9 @@ def generate_collection_boxes():
     # Eurasian GIN Seas
     collection_boxes["EurGIN1"] = Box(60, 80, 3, 9.5)
     collection_boxes["EurGIN2"] = Box(68, 78, 9.5, 24.375)
-    collection_boxes["EurGIN3"] = Box(60, 68.75, 0, 16)
-    collection_boxes["EurGIN4"] = Box(50, 60.0, 0.0, 13)
-    collection_boxes["EurGIN5"] = Box(66.25, 76.25, 16, 13)
+    collection_boxes["EurGIN3"] = Box(60, 68, 0, 16)
+    collection_boxes["EurGIN4"] = Box(50, 60, 0, 13)
+    collection_boxes["EurGIN5"] = Box(66.25, 68, 16, 24.375)
     collection_boxes["EurGIN6"] = Box(60, 80, 0., 3)  # New one, only for catching
     collection_boxes["Baltic1"] = Box(50, 60.0, 13, 30)  # only for catching the water
     collection_boxes["Baltic2"] = Box(60, 66.25, 16, 38)  # not for spreading
@@ -432,7 +432,7 @@ def generate_collection_boxes():
     collection_boxes["SIceland1"] = Box(60, 63.75, 339.5, 346.75)
     # Siberian Arctic
     collection_boxes["SibArc1"] = Box(68, 82, 173, 191)
-    collection_boxes["SibArc2"] = Box(68, 82, 114, 173)  # New One
+    collection_boxes["SibArc2"] = Box(68, 82, 114.5, 173)  # New One
     # Eurasian Arctic
     collection_boxes["EurArc1"] = Box(78, 86, 9.5, 114.5)
     collection_boxes["EurArc2"] = Box(66.25, 78, 24.375, 114.5)
