@@ -1,7 +1,6 @@
-*.nc
 archive/
 .idea/
-Test.ipynb
 .ipynb_checkpoints/
-__*
-proj_21k_waterfix/
+__init__.pyc
+__pycache__
+demo/conservative_720x720_73x96.nc
