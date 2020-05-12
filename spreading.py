@@ -1,10 +1,7 @@
-import sys
-
-sys.path.append('glac1d_meltwater')
-import routing
-import saving
-import plotting
-import glac1d_toolbox as tb
+import hadcm3_deglac_glac1d.routing as routing
+import hadcm3_deglac_glac1d.plotting as plotting
+import hadcm3_deglac_glac1d.saving as saving
+import hadcm3_deglac_glac1d.glac1d_toolbox as tb
 
 import numpy as np
 
