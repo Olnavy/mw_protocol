@@ -2,7 +2,7 @@ import glac_mw.glac1d_toolbox as tb
 import numpy as np
 
 """
-ADAPTED FROM produce_deglacHadCM3_spread.py by R F Ivanovic
+DIRECTLY ADAPTED FROM produce_deglacHadCM3_spread.py by R F Ivanovic
 """
 
 
@@ -13,10 +13,12 @@ ADAPTED FROM produce_deglacHadCM3_spread.py by R F Ivanovic
 
 def spreading(discharge_mw, ds_lsm, ds_wf):
     """
-    :param ds_lsm:
-    :param ds_mw:
-    :param ds_wf:
-    :return:
+    From an initial discharge cube return a new cube with meltwater collected and spreaded over new regions adding the
+    waterfix.
+    :param discharge_mw: Initial discharge cube [t*lat*lon].
+    :param ds_lsm: Land sea mask.
+    :param ds_wf: Waterfix.
+    :return: Discharge cube with the waterfix [t*lat*lon].
     """
     
     print("__ Spreading algorithm")
@@ -60,17 +62,17 @@ def spreading(discharge_mw, ds_lsm, ds_wf):
     return total_mw
 
 
-# -------------------------------------- #
-# ---------- SPREADING METHOD ---------- #
-# -------------------------------------- #
+# --------------------------------- #
+# ---------- NEW METHODS ---------- #
+# --------------------------------- #
 
 def spreading_method(discharge_mw, spread_regions, surface_matrix):
     """
-
-    :param discharge_mw:
-    :param spread_regions:
-    :param surface_matrix:
-    :return:
+    Spreading meltwater over spreading zones.
+    :param discharge_mw: Initial discharge cube [t*lat*lon].
+    :param spread_regions: List of spreading zones objects.
+    :param surface_matrix: LSM surface matrix [lat*lon]
+    :return: Spreaded discharge cube [t*lat*lon].
     """
     nt, nlat, nlon = discharge_mw.shape
     spreaded_mw = np.zeros((nt, nlat, nlon))
@@ -99,26 +101,13 @@ def spreading_method(discharge_mw, spread_regions, surface_matrix):
     return spreaded_mw
 
 
-def correction_waterfix(correction, wfix, surface_matrix):
-    """
-
-    :param spreaded_mw:
-    :param wfix:
-    :param surface_matrix:
-    :return:
-    """
-    d = 1000  # water density
-    
-    return np.where(np.isnan(wfix + correction), 0, wfix + correction) / d * surface_matrix
-
-
 def convert_waterfix(wfix, discharge_mw, surface_matrix):
     """
-
-    :param spreaded_mw:
-    :param wfix:
-    :param surface_matrix:
-    :return:
+    Convert the waterfix to m3/S and resize it to fit the waterfix.
+    :param wfix: Waterfix.
+    :param discharge_mw: Discharge file to extract the shape from.
+    :param surface_matrix: LSM surface matrix.
+    :return: 3D converted waterfix [m3/S, t*lat*lon]
     """
     nt, nlat, nlon = discharge_mw.shape
     d = 1000  # water density
@@ -132,10 +121,10 @@ def convert_waterfix(wfix, discharge_mw, surface_matrix):
 
 def get_discharge_others(discharge_mw, spread_regions):
     """
-
-    :param discharge_mw:
-    :param spread_regions:
-    :return:
+    Calculate the flux from areas off the spreading regions.
+    :param discharge_mw: Flux array [t*lat*lon]
+    :param spread_regions: List of spreading zones objects.
+    :return: Flux cube [t*lat*lon] of remaining flux after the spreading algorithm.
     """
     discharge_others = np.ma.copy(discharge_mw)
     nt, nlat, nlon = discharge_mw.shape
@@ -153,15 +142,14 @@ def get_discharge_others(discharge_mw, spread_regions):
 
 def flux_check(discharge_mw, spreaded_mw, discharge_others_mw, wfix, total_mw):
     """
-
-    :param discharge_mw:
-    :param spreaded_mw:
-    :param discharge_others_mw:
-    :param wfix:
-    :param total_mw:
-    :return:
+    Quick display of flux check.
+    :param discharge_mw: Initial discharge cube [t*lat*lon].
+    :param spreaded_mw: Sreaded discharge cube [t*lat*lon].
+    :param discharge_others_mw: Leftovers discharge cube [t*lat*lon].
+    :param wfix: Waterfix.
+    :param total_mw: Initial discharge cube [t*lat*lon].
+    :return: None
     """
-    # ajouter le test avec lsm ici!
     
     # Check the spreading has worked
     nt = discharge_mw.shape[0]
@@ -206,10 +194,24 @@ def flux_check(discharge_mw, spreaded_mw, discharge_others_mw, wfix, total_mw):
     # ------------------------------ #
 
 
-class Box:
+def correction_waterfix(correction, wfix, surface_matrix):
     """
+    Adding a correction patch (constant value) to the waterfix. DEPRECATED.
+    :param correction: Correction patch.
+    :param wfix: Waterfix.
+    :param surface_matrix: LSM Surface matrix.
+    :return:
+    """
+    d = 1000  # water density
+    return np.where(np.isnan(wfix + correction), 0, wfix + correction) / d * surface_matrix
 
-    """
+
+# --------------------------------- #
+# ---------- OLD METHODS ---------- #
+# --------------------------------- #
+
+
+class Box:
     
     def __init__(self, latmin, latmax, lonmin, lonmax):
         self.latmin = latmin
@@ -245,9 +247,6 @@ class Box:
 
 
 class Region:
-    """
-
-    """
     
     def __init__(self, boxes, grid, mask):
         self.boxes = boxes[:]
@@ -285,9 +284,6 @@ class Region:
 
 
 class Grid:
-    """
-
-    """
     
     def __init__(self, lat, lon):
         self.lon_center, self.lat_center = np.meshgrid(lon.center, lat.center)
@@ -346,18 +342,11 @@ class LatAxis:
         self.upper[-1] = 90
 
 
-# --------------------------- #
-# ---------- ZONES ---------- #
-# --------------------------- #
-
 def generate_collection_boxes():
     """
-
-    :return:
+    Method to define the collection boxes.
+    :return: Dictionary of collection Boxes.
     """
-    #
-    # Spread the discharge from the major rivers
-    #
     
     collection_boxes = dict()
     # Define rivers (automatically defines masks and areas)
@@ -455,84 +444,85 @@ def generate_collection_boxes():
     return collection_boxes
 
 
-def generate_spreading_zones(cb, umgrid, masked, masked_500m):
+def generate_spreading_zones(cb, um_grid, masked, masked_500m):
     """
-
-    :param cb:
-    :param umgrid:
-    :param masked:
-    :param masked_500m:
-    :return:
+    Method to define the collection boxes.
+    :param cb: Collection boxes dictionary.
+    :param um_grid: Grid of the model.
+    :param masked: Land sea mask at the surface.
+    :param masked_500m: Land sea mask at 500m.
+    :return: List of spreading zones objects.
     """
+    
     # Now identify the regions that the water is routed into and spread it over the new larger regions
     us_ecoast = {'name': 'US_East_Coast',
                  'loc': Region([cb["USECoast1"], cb["USECoast2"], cb["USECoast3"], cb["USECoast4"], cb["USECoast5"],
-                                cb["USECoast6"], cb["GrLakes1"]], umgrid, masked),
+                                cb["USECoast6"], cb["GrLakes1"]], um_grid, masked),
                  'region': Region(
                      [cb["USECoast1"], cb["USECoast2"], cb["USECoast3"], cb["USECoast4"], cb["USECoast4"],
-                      cb["USECoast5"]], umgrid,
+                      cb["USECoast5"]], um_grid,
                      masked_500m)}
-    gr_arc = {'name': 'Greenland_Arctic', 'loc': Region([cb["GrArc1"]], umgrid, masked),
-              'region': Region([cb["GrArc1"]], umgrid, masked_500m)}
+    gr_arc = {'name': 'Greenland_Arctic', 'loc': Region([cb["GrArc1"]], um_grid, masked),
+              'region': Region([cb["GrArc1"]], um_grid, masked_500m)}
     n_am_arc = {'name': 'N_American_Arctic',
                 'loc': Region(
                     [cb["NAMArc1"], cb["NAMArc2"], cb["NAMArc3"], cb["NAMArc4"], cb["NAMArc5"], cb["NWTerr1"],
-                     cb["NWTerr2"]], umgrid, masked),
-                'region': Region([cb["NAMArc1"], cb["NAMArc2"], cb["NAMArc3"], cb["NAMArc4"]], umgrid, masked_500m)}
-    g_o_m = {'name': 'Gulf_of_Mexico', 'loc': Region([cb["GoM1"]], umgrid, masked),
-             'region': Region([cb["GoM1"]], umgrid, masked_500m)}
+                     cb["NWTerr2"]], um_grid, masked),
+                'region': Region([cb["NAMArc1"], cb["NAMArc2"], cb["NAMArc3"], cb["NAMArc4"]], um_grid, masked_500m)}
+    g_o_m = {'name': 'Gulf_of_Mexico', 'loc': Region([cb["GoM1"]], um_grid, masked),
+             'region': Region([cb["GoM1"]], um_grid, masked_500m)}
     e_pac = {'name': 'East_Pacific',
-             'loc': Region([cb["EPac1"], cb["EPac2"], cb["EPac3"], cb["EPac4"], cb["EPac5"]], umgrid, masked),
-             'region': Region([cb["EPac1"], cb["EPac2"], cb["EPac3"], cb["EPac4"], cb["EPac5"]], umgrid,
+             'loc': Region([cb["EPac1"], cb["EPac2"], cb["EPac3"], cb["EPac4"], cb["EPac5"]], um_grid, masked),
+             'region': Region([cb["EPac1"], cb["EPac2"], cb["EPac3"], cb["EPac4"], cb["EPac5"]], um_grid,
                               masked_500m)}
-    russ_pac = {'name': 'Russia_Pacific', 'loc': Region([cb["RussPac1"]], umgrid, masked),
-                'region': Region([cb["RussPac1"]], umgrid, masked_500m)}
+    russ_pac = {'name': 'Russia_Pacific', 'loc': Region([cb["RussPac1"]], um_grid, masked),
+                'region': Region([cb["RussPac1"]], um_grid, masked_500m)}
     baf_lab = {'name': 'LabradorSea_BaffinBay',
-               'loc': Region([cb["BafLab1"], cb["BafLab2"], cb["BafLab3"], cb["HudBay1"], cb["HudBay2"]], umgrid,
+               'loc': Region([cb["BafLab1"], cb["BafLab2"], cb["BafLab3"], cb["HudBay1"], cb["HudBay2"]], um_grid,
                              masked),
-               'region': Region([cb["BafLab1"], cb["BafLab2"], cb["BafLab3"]], umgrid, masked_500m)}
-    atl_gr = {'name': 'Atlantic_GreenlandIceland', 'loc': Region([cb["AtlGr1"], cb["AtlGr2"]], umgrid, masked),
-              'region': Region([cb["AtlGr1"], cb["AtlGr2"]], umgrid, masked_500m)}
-    e_gr_ice = {'name': 'EastGreenland_Iceland', 'loc': Region([cb["EGrIce1"], cb["EGrIce2"]], umgrid, masked),
-                'region': Region([cb["EGrIce1"], cb["EGrIce2"]], umgrid, masked_500m)}
-    e_ice = {'name': 'EastIceland', 'loc': Region([cb["EIceland1"]], umgrid, masked),
-             'region': Region([cb["EIceland1"]], umgrid, masked_500m)}
-    uk_atl = {'name': 'UK_Atlantic', 'loc': Region([cb["UKAtl1"]], umgrid, masked),
-              'region': Region([cb["UKAtl1"]], umgrid, masked_500m)}
+               'region': Region([cb["BafLab1"], cb["BafLab2"], cb["BafLab3"]], um_grid, masked_500m)}
+    atl_gr = {'name': 'Atlantic_GreenlandIceland', 'loc': Region([cb["AtlGr1"], cb["AtlGr2"]], um_grid, masked),
+              'region': Region([cb["AtlGr1"], cb["AtlGr2"]], um_grid, masked_500m)}
+    e_gr_ice = {'name': 'EastGreenland_Iceland', 'loc': Region([cb["EGrIce1"], cb["EGrIce2"]], um_grid, masked),
+                'region': Region([cb["EGrIce1"], cb["EGrIce2"]], um_grid, masked_500m)}
+    e_ice = {'name': 'EastIceland', 'loc': Region([cb["EIceland1"]], um_grid, masked),
+             'region': Region([cb["EIceland1"]], um_grid, masked_500m)}
+    uk_atl = {'name': 'UK_Atlantic', 'loc': Region([cb["UKAtl1"]], um_grid, masked),
+              'region': Region([cb["UKAtl1"]], um_grid, masked_500m)}
     eur_gin = {'name': 'Eurasian_GINSeas', 'loc': Region(
         [cb["EurGIN1"], cb["EurGIN2"], cb["EurGIN3"], cb["EurGIN4"], cb["EurGIN5"], cb["EurGIN6"], cb["Baltic1"],
          cb["Baltic2"]],
-        umgrid, masked),
-               'region': Region([cb["EurGIN1"], cb["EurGIN2"], cb["EurGIN3"], cb["EurGIN4"], cb["EurGIN5"]], umgrid,
+        um_grid, masked),
+               'region': Region([cb["EurGIN1"], cb["EurGIN2"], cb["EurGIN3"], cb["EurGIN4"], cb["EurGIN5"]], um_grid,
                                 masked_500m)}
-    s_iceland = {'name': 'South_Iceland', 'loc': Region([cb["SIceland1"]], umgrid, masked),
-                 'region': Region([cb["SIceland1"]], umgrid, masked_500m)}
-    sib_arc = {'name': 'Siberian_Arctic', 'loc': Region([cb["SibArc1"], cb["SibArc2"]], umgrid, masked),
-               'region': Region([cb["SibArc1"]], umgrid, masked_500m)}
+    s_iceland = {'name': 'South_Iceland', 'loc': Region([cb["SIceland1"]], um_grid, masked),
+                 'region': Region([cb["SIceland1"]], um_grid, masked_500m)}
+    sib_arc = {'name': 'Siberian_Arctic', 'loc': Region([cb["SibArc1"], cb["SibArc2"]], um_grid, masked),
+               'region': Region([cb["SibArc1"]], um_grid, masked_500m)}
     eur_arc = {'name': 'Eurasian_Arctic',
-               'loc': Region([cb["EurArc1"], cb["EurArc2"], cb["EurArc3"]], umgrid, masked),
-               'region': Region([cb["EurArc1"], cb["EurArc2"]], umgrid, masked_500m)}
+               'loc': Region([cb["EurArc1"], cb["EurArc2"], cb["EurArc3"]], um_grid, masked),
+               'region': Region([cb["EurArc1"], cb["EurArc2"]], um_grid, masked_500m)}
     med = {'name': 'Mediterranean',
-           'loc': Region([cb["Med1"], cb["Med2"], cb["BlckSea1"], cb["CaspSea1"]], umgrid, masked),
-           'region': Region([cb["Med1"], cb["Med2"]], umgrid, masked_500m)}
-    pat_atl = {'name': 'Patagonia_Atlantic', 'loc': Region([cb["PatAtl1"]], umgrid, masked),
-               'region': Region([cb["PatAtl1"]], umgrid, masked_500m)}
-    pat_pac = {'name': 'Patagonia_Pacific', 'loc': Region([cb["PatPac1"], cb["PatPac2"]], umgrid, masked),
-               'region': Region([cb["PatPac1"], cb["PatPac2"]], umgrid, masked_500m)}
-    nnz_pac = {'name': 'NorthNewZealand_Pacific', 'loc': Region([cb["NNZPac1"]], umgrid, masked),
-               'region': Region([cb["NNZPac1"]], umgrid, masked_500m)}
-    snz_pac = {'name': 'SouthNewZealand_Pacific', 'loc': Region([cb["SNZPac1"]], umgrid, masked),
-               'region': Region([cb["SNZPac1"]], umgrid, masked_500m)}
-    aa_ros = {'name': 'Antarctica_RossSea', 'loc': Region([cb["AARos1"]], umgrid, masked),
-              'region': Region([cb["AARos1"]], umgrid, masked_500m)}
-    aa_amund = {'name': 'Antarctica_AmundsenSea', 'loc': Region([cb["AAAmund"]], umgrid, masked),
-                'region': Region([cb["AAAmund"]], umgrid, masked_500m)}
-    aa_weddell = {'name': 'Antarctica_WeddellSea', 'loc': Region([cb["AAWeddell"]], umgrid, masked),
-                  'region': Region([cb["AAWeddell"]], umgrid, masked_500m)}
-    aa_rii_lar = {'name': 'Antarctica_RiiserLarsonSea', 'loc': Region([cb["AARiiLar"]], umgrid, masked),
-                  'region': Region([cb["AARiiLar"]], umgrid, masked_500m)}
-    aa_davis = {'name': 'Antarctica_DavisSea', 'loc': Region([cb["AADavis"]], umgrid, masked),
-                'region': Region([cb["AADavis"]], umgrid, masked_500m)}
+           'loc': Region([cb["Med1"], cb["Med2"], cb["BlckSea1"], cb["CaspSea1"]], um_grid, masked),
+           'region': Region([cb["Med1"], cb["Med2"]], um_grid, masked_500m)}
+    pat_atl = {'name': 'Patagonia_Atlantic', 'loc': Region([cb["PatAtl1"]], um_grid, masked),
+               'region': Region([cb["PatAtl1"]], um_grid, masked_500m)}
+    pat_pac = {'name': 'Patagonia_Pacific', 'loc': Region([cb["PatPac1"], cb["PatPac2"]], um_grid, masked),
+               'region': Region([cb["PatPac1"], cb["PatPac2"]], um_grid, masked_500m)}
+    nnz_pac = {'name': 'NorthNewZealand_Pacific', 'loc': Region([cb["NNZPac1"]], um_grid, masked),
+               'region': Region([cb["NNZPac1"]], um_grid, masked_500m)}
+    snz_pac = {'name': 'SouthNewZealand_Pacific', 'loc': Region([cb["SNZPac1"]], um_grid, masked),
+               'region': Region([cb["SNZPac1"]], um_grid, masked_500m)}
+    aa_ros = {'name': 'Antarctica_RossSea', 'loc': Region([cb["AARos1"]], um_grid, masked),
+              'region': Region([cb["AARos1"]], um_grid, masked_500m)}
+    aa_amund = {'name': 'Antarctica_AmundsenSea', 'loc': Region([cb["AAAmund"]], um_grid, masked),
+                'region': Region([cb["AAAmund"]], um_grid, masked_500m)}
+    aa_weddell = {'name': 'Antarctica_WeddellSea', 'loc': Region([cb["AAWeddell"]], um_grid, masked),
+                  'region': Region([cb["AAWeddell"]], um_grid, masked_500m)}
+    aa_rii_lar = {'name': 'Antarctica_RiiserLarsonSea', 'loc': Region([cb["AARiiLar"]], um_grid, masked),
+                  'region': Region([cb["AARiiLar"]], um_grid, masked_500m)}
+    aa_davis = {'name': 'Antarctica_DavisSea', 'loc': Region([cb["AADavis"]], um_grid, masked),
+                'region': Region([cb["AADavis"]], um_grid, masked_500m)}
     
     return [us_ecoast, gr_arc, n_am_arc, g_o_m, e_pac, russ_pac, baf_lab, atl_gr, e_gr_ice, e_ice, uk_atl, eur_gin,
             s_iceland, eur_arc, sib_arc, med, pat_atl, pat_pac, nnz_pac, snz_pac, aa_ros, aa_amund, aa_weddell,

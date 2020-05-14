@@ -7,34 +7,32 @@ import numpy as np
 # --------------------------------- #
 
 
-def routing(ds_hice, ds_pointer, ds_lsm, mode_flux="Volume", mode_lon="double",
+def routing(ds_hice, ds_pointer, ds_lsm, mode_flux="m3/S", mode_lon="double",
             mode_shape="cross", mode_smooth="differential", t_debug=None):
     """
-    From a ice thickness data set, create a time serie of routed meltwater mass flux (or volumetric flux) masks.
+    Create a meltwater mass flux mask from an ice thickness reconstruction and a routing map.
     The mass flux is obtained by the formula : Fm = dh/dt*d with d=1000kg/m^3 is the density
-    :param ds_hice: Ice thickness file.
-    :param ds_pointer: Pointer file.
-    :param ds_lsm: land sea mask
-    :param mode_flux: Mode to chose the flux file unit
-    :param mode_lon: Longitude mode for the overlapping method (cf demo)
-    :param mode_shape: Shape mode for the overlapping method (cf demo)
-    :param mode_smooth: Smoothing mode for the smoothing method (cf demo)
-    :param t_debug: Debug mode by limiting the number of time steps.
-    :return: t*lat*lon numpy array
+    :param ds_hice: Ice sheet reconstruction represented by ice thickness.
+    :param ds_pointer: Pointer routing map.
+    :param ds_lsm: Land sea mask.
+    :param mode_flux: Output flux file unit. Default is Volume.
+    :param mode_lon: Longitude mode for the overlapping method (cf demo). Default is double.
+    :param mode_shape: Shape mode for the overlapping method (cf demo). Default is double
+    :param mode_smooth: Smoothing mode for the smoothing method (cf demo). Default is double
+    :param t_debug: Number of time steps for debugging. None deactivate debugging mode. Default is None.
+    :return: [t*lat*lon] numpy array
     """
     
     print("__ Routing algorithm")
     
+    # Time serie of routed files.
     routed_flux_serie = np.zeros(
         (len(ds_hice.HGLOBH.T122KP1), ds_lsm.lsm.values.shape[0], ds_lsm.lsm.values.shape[1]))
     
     regridder = tb.hadcm3_regridding_method(ds_hice, ds_lsm, reuse_weights=True)
     
-    # Debug mode
-    if t_debug is None:
-        tmax = routed_flux_serie.shape[0]
-    else:
-        tmax = t_debug
+    # Activate debuging mode.
+    tmax = routed_flux_serie.shape[0] if t_debug is None else t_debug
     
     for t in range(0, tmax):
         flux = hi_to_discharge(ds_hice, t, mode_flux)
@@ -51,11 +49,6 @@ def routing(ds_hice, ds_pointer, ds_lsm, mode_flux="Volume", mode_lon="double",
         land_sea_mask = ds_lsm.lsm.values
         shifted_mask = overlapping_method(hadcm3_mask, land_sea_mask, mode_lon=mode_lon, mode_shape=mode_shape)
         
-        # print(
-        #     f"Flux check -> initial : {np.sum(flux)}, routed : {np.sum(routed_mask)},"
-        #     f" regrided : {np.sum(hadcm3_mask)}, shifted {np.sum(shifted_mask)}")
-        # A loger
-        
         # Smoothing of the results
         smoothed_mask = smoothing_method(shifted_mask, mode_smooth)
         
@@ -66,16 +59,16 @@ def routing(ds_hice, ds_pointer, ds_lsm, mode_flux="Volume", mode_lon="double",
 
 
 # ---------------------------------------- #
-# ---------- CONVERSION METHODS ---------- #
+# ---------- ADDITIONAL METHODS ---------- #
 # ---------------------------------------- #
 
 def hi_to_discharge(ds_hice, t, flux_mode):
     """
     Convert ice thickness difference in a flux, including multiplying the flux and removing the negative values.
-    :param ds_hice: Ice thickness file
-    :param t: time step
+    :param ds_hice: Ice sheet reconstruction represented by ice thickness.
+    :param t: Time step
     :param flux_mode: cf main method
-    :return: m3/s lat*lon numpy array
+    :return: [lat*lon] numpy array
     """
     
     # Water density
@@ -83,25 +76,25 @@ def hi_to_discharge(ds_hice, t, flux_mode):
     
     print(f"____ Computation time step : {t}.")
     
-    # Compute the flux for the time step and conversion years to seconds
+    # Computation of the flux for the time step and conversion from years to seconds.
     if t != len(ds_hice.HGLOBH.T122KP1) - 1:
         delta_t = (ds_hice.T122KP1[t + 1].values - ds_hice.T122KP1[t].values) * 365 * 24 * 3600 * 1000
-        if flux_mode == "Mass":
+        if flux_mode == "kg/s":
             flux = - (ds_hice.HGLOBH[t + 1].values - ds_hice.HGLOBH[t].values) * d / delta_t
-        elif flux_mode == "Sv":
+        elif flux_mode == "sv":
             flux = - (ds_hice.HGLOBH[t + 1].values - ds_hice.HGLOBH[t].values) * 10 ** (-6) / delta_t
-        elif flux_mode == "Volume":
+        elif flux_mode == "m3/s":
             flux = - (ds_hice.HGLOBH[t + 1].values - ds_hice.HGLOBH[t].values) / delta_t
         else:
             flux = - (ds_hice.HGLOBH[t + 1].values - ds_hice.HGLOBH[t].values) / delta_t
     
     else:
         delta_t = (ds_hice.T122KP1[t].values - ds_hice.T122KP1[t - 1].values) * 365 * 24 * 3600 * 1000
-        if flux_mode == "Mass":
+        if flux_mode == "kg/s":
             flux = - (ds_hice.HGLOBH[t].values - ds_hice.HGLOBH[t - 1].values) * d / delta_t
-        elif flux_mode == "Sv":
+        elif flux_mode == "sv":
             flux = - (ds_hice.HGLOBH[t].values - ds_hice.HGLOBH[t - 1].values) * 10 ** (-6) / delta_t
-        elif flux_mode == "Volume":
+        elif flux_mode == "m3/s":
             flux = - (ds_hice.HGLOBH[t].values - ds_hice.HGLOBH[t - 1].values) / delta_t
         else:
             flux = - (ds_hice.HGLOBH[t].values - ds_hice.HGLOBH[t - 1].values) / delta_t
@@ -115,41 +108,13 @@ def hi_to_discharge(ds_hice, t, flux_mode):
     return flux
 
 
-def smoothing_method(mask, mode_smooth):
-    """
-    Smooth the resulting mask over time steps.
-    :param mask:
-    :param mode_smooth:
-    :return:
-    """
-    processed_mask = np.zeros(mask.shape)
-    
-    if mode_smooth == "differential":
-        print(f"____ Applying mask processing with {mode_smooth} mode.")
-        processed_mask[0] = mask[1] * 1 / 2  # First step
-        processed_mask[len(mask) - 1] = mask[len(mask) - 2] * 1 / 2  # Last step
-        for i in range(1, len(mask) - 1):
-            processed_mask[i] = mask[i - 1] * 1 / 2 + mask[i] * 1 / 2
-    elif mode_smooth == "no_differential":
-        processed_mask = mask
-    else:
-        print("____ Mask processing mode not recognized.")
-        processed_mask = mask
-    
-    return processed_mask
-
-
-# ------------------------------------- #
-# ---------- ROUTING METHODS ---------- #
-# ------------------------------------- #
-
 def routing_method(initial_mask, ix, jy):
     """
-    Create the routed mask from an initial mask and a pointer.
-    :param initial_mask: initial mask
-    :param ix:
-    :param jy:
-    :return: routed mask
+    Create the routed mask from an initial metlwater mask and two indexes routing maps.
+    :param initial_mask: Meltwater flux array [lat*lon]
+    :param ix: x indexes. Correspond to a couple (lon,lat)
+    :param jy: y indexes. Correspond to a couple (lon,lat)
+    :return: routed mask [lat*lon]
     """
     
     print(f"____ Routing method.")
@@ -167,39 +132,35 @@ def routing_method(initial_mask, ix, jy):
     return routed_mask
 
 
-# ---------------------------------------- #
-# ---------- OVERLAPING METHODS ---------- #
-# ---------------------------------------- #
-
-def get_neighbours(radius, mode_lon, mode_shape, i):
+def get_neighbours(radius, mode_lon, mode_shape, i_inc):
     """
-    Return the indexes of the closest neighbours given one of the index, the modes and a radius.
-    :param radius: radius or the research zone
-    :param mode_lon: cf main method
-    :param mode_shape: cf main method
-    :param i: index
-    :return: list of the neighbours
+    Return the (i,j) increment couples corresponding to neighbouring points for a given i_increment.
+    :param radius: Radius or the research zone.
+    :param mode_lon: cf demo.
+    :param mode_shape: cf demo.
+    :param i_inc: i_index.
+    :return: (i,j) of neighbouring points.
     """
     if mode_lon == "simple" and mode_shape == "square":
         return range(-radius, radius + 1)
     elif mode_lon == "simple" and mode_shape == "cross":
-        return range(-(radius - abs(i)), (radius - abs(i) + 1))
+        return range(-(radius - abs(i_inc)), (radius - abs(i_inc) + 1))
     elif mode_lon == "double" and mode_shape == "square":
-        return range(-((radius - abs(i)) // 2), (radius - abs(i)) // 2 + 1)
+        return range(-((radius - abs(i_inc)) // 2), (radius - abs(i_inc)) // 2 + 1)
     else:
-        return range(-((radius - abs(i)) // 2), (radius - abs(i)) // 2 + 1)
+        return range(-((radius - abs(i_inc)) // 2), (radius - abs(i_inc)) // 2 + 1)
 
 
-def overlapping_method(flux_mask, lsm, mode_lon="double", mode_shape="cross", verbose=False):
+def overlapping_method(flux_mask, lsm, mode_lon, mode_shape, verbose=False):
     """
-    Shift the points dischargep points overlaping the land mask to the closet sea point.
-    :param flux_mask: initial flux mask (m3/s)
-    :param lsm: land sea mask
-    :param mode_lon: Simple or double longitude for the closest neighbours algorithm (unregular grids)
-    :param mode_shape: Saure or cross for the closest neighbours algorithm
-    :param verbose: verbose mode
-    :return: shifted flux mask
-    TO DO : very slow. How to avoid the 5* loop? Dask?
+    Shift the mask points overlapping the land mask to the closet sea point.
+    :param flux_mask: Initial flux mask [lat*lon].
+    :param lsm: Land sea mask.
+    :param mode_lon: Simple or double longitude mode used in get_neighbours. cf demo.
+    :param mode_shape: Square or cross mode used in get_neighbours. cf demo.
+    :param verbose: Verbose mode.
+    :return: Processed flux mask [lat*lon].
+    TO DO : Very slow. How to avoid the 5* loop? Dask?
     """
     
     print(f"____ Overlapping method with {mode_lon}-{mode_shape} mode.")
@@ -210,16 +171,17 @@ def overlapping_method(flux_mask, lsm, mode_lon="double", mode_shape="cross", ve
     for i in range(n_i):
         for j in range(n_j):
             
+            # There is overlaping if the flux is not null and there is land.
             if flux_mask[j, i] != 0 and lsm[j, i] == 1:
-                # Flux on land implies overlapping. We therefore apply the algorithm.
                 
                 radius, land_condition, i_sea_points, j_sea_points = 0, True, [], []
+                # Looping on radius while the algorithm hasn't reached sea.
                 while land_condition:
                     for i_2 in range(- radius, radius + 1):
                         for j_2 in get_neighbours(radius, mode_lon, mode_shape, i_2):
                             i_test = (i + i_2) % n_i
                             j_test = min(max(j + j_2, 0), n_j - 1)
-                            if lsm[j_test, i_test] == 0:
+                            if lsm[j_test, i_test] == 0:  # Sea found!
                                 i_sea_points.append(i_test)
                                 j_sea_points.append(j_test)
                                 land_condition = False
@@ -230,8 +192,32 @@ def overlapping_method(flux_mask, lsm, mode_lon="double", mode_shape="cross", ve
                 for i_3, j_3 in zip(i_sea_points, j_sea_points):
                     shifted_mask[j_3, i_3] += flux_mask[j, i] / len(i_sea_points)
             
+            # If no overlapping, the point is unchanged.
             elif not np.isnan(flux_mask[j, i]):
-                # Else the point stay unchanged
                 shifted_mask[j, i] += flux_mask[j, i]
     
     return shifted_mask
+
+
+def smoothing_method(mask, mode_smooth):
+    """
+    Smooth the resulting mask over time.
+    :param mask: [t*lat*lon] array
+    :param mode_smooth: cf demo.
+    :return:
+    """
+    processed_mask = np.zeros(mask.shape)
+    
+    if mode_smooth == "differential":
+        print(f"____ Applying mask processing with {mode_smooth} mode.")
+        processed_mask[0] = mask[1] * 1 / 2  # First step
+        processed_mask[len(mask) - 1] = mask[len(mask) - 2] * 1 / 2  # Last step
+        for i in range(1, len(mask) - 1):
+            processed_mask[i] = mask[i - 1] * 1 / 2 + mask[i] * 1 / 2
+    elif mode_smooth == "no_differential":
+        processed_mask = mask
+    else:
+        print("____ Mask processing mode not recognized.")
+        processed_mask = mask
+    
+    return processed_mask
