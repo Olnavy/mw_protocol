@@ -1,15 +1,7 @@
-import sys
-sys.path.append('glac1d_meltwater')
-import routing
-import spreading
-import saving
-import plotting
-import glac1d_toolbox as tb
-
-# import glac1d_meltwater.routing as routing
-# import glac1d_meltwater.spreading as spreading
-# import glac1d_meltwater.saving as saving
-# import glac1d_meltwater.plottig as plotting
+import glac_mw.routing as routing
+import glac_mw.spreading as spreading
+import glac_mw.saving as saving
+import glac_mw.plotting as plotting
 import xarray as xr
 
 experiments = ["teadv3", "teada3", "teaeb3", "teadb3", "teaec3", "teadc3", "teaed3", "teadd3", "teaee3", "teade3",
@@ -27,17 +19,17 @@ saving.create_output_folder("differential", -26, 0, False)
 for experiment in experiments:
     lsm_path = f"/nfs/annie/eeymr/work/data/Proj_GLAC1D/lsm/{experiment}.qrparm.omask.nc"
     ds_lsm = xr.open_dataset(lsm_path)
-
+    
     wfix_path = f"/nfs/annie/eeymr/work/data/Proj_GLAC1D/waterfix/{experiment}.qrparam.waterfix.hadcm3.nc"
     ds_wfix = xr.open_dataset(wfix_path)
-
+    
     routed_mw = routing.routing(ds_hice, ds_pointer, ds_lsm, mode_flux="Volume", mode_lon="double",
                                 mode_shape="cross", mode_smooth="differential")
-
+    
     saving.saving(routed_mw, ds_lsm, experiment, mode="routed")
-
+    
     spreaded_mw = spreading.spreading(routed_mw, ds_lsm, ds_wfix)
-
+    
     saving.saving(spreaded_mw, ds_lsm, experiment, mode="spreaded")
 
 plotting.flux_ts("dif", -26, 0, True,

@@ -69,7 +69,7 @@ def running_mean(data, n):
     list of numpy 1D array
         new averaged data
     """
-    mean = np.convolve(data, np.ones((n)), mode="full")
+    mean = np.convolve(data, np.ones(n), mode="full")
     out_mean = np.zeros((len(data)))
     for i in range(len(data)):
         if i + 1 < n:
@@ -78,11 +78,10 @@ def running_mean(data, n):
             out_mean[i] = mean[i] / n
     return out_mean
 
+
 # -------------------------------------- #
 # ---------- PLOTTING METHODS ---------- #
 # -------------------------------------- #
-
-
 
 
 def cycle_plot_rect_zone(lon_min, lon_max, lat_min, lat_max):
@@ -99,28 +98,28 @@ def cycle_plot_rect_zone(lon_min, lon_max, lat_min, lat_max):
 # ---------------------------------------- #
 
 
-def HadCM3_regridding_method(ds_input, ds_HadCM3, reuse_weights=False):
+def hadcm3_regridding_method(ds_input, ds_hadcm3, reuse_weights=False):
     """
     Conservative regridder from any input format to HadCM3. Need to update it to detect longitude/latitude fields on any
      input file.
     :param ds_input: dataset to transform to HadCM3 grid
-    :param ds_HadCM3: ANY HadCM3 dataset
+    :param ds_hadcm3: ANY HadCM3 dataset
     :return: Regr
     """
-
+    
     # To change to take into account different longitudes and latitudes. Here tuned to GLAC1D ice thickness.
     lon_glac1D, lat_glac1D = ds_input.XLONGLOBP5.values, ds_input.YLATGLOBP25.values
     lon_glac1D_b, lat_glac1D_b = create_coordinate_edges(lon_glac1D), create_coordinate_edges(lat_glac1D)
-
-    lon_HadCM3, lat_HadCM3 = ds_HadCM3.longitude.values, ds_HadCM3.latitude.values
+    
+    lon_HadCM3, lat_HadCM3 = ds_hadcm3.longitude.values, ds_hadcm3.latitude.values
     lon_HadCM3_b, lat_HadCM3_b = create_coordinate_edges(lon_HadCM3), create_coordinate_edges(lat_HadCM3)
-
+    
     ds_out = xr.Dataset(coords={'lon': (['x'], lon_HadCM3),
                                 'lat': (['y'], lat_HadCM3),
                                 'lon_b': (['x_b'], lon_HadCM3_b),
                                 'lat_b': (['y_b'], lat_HadCM3_b)
                                 })
-
+    
     ds_in = xr.Dataset(coords={'lon': (['x'], lon_glac1D),
                                'lat': (['y'], lat_glac1D),
                                'lon_b': (['x_b'], lon_glac1D_b),
@@ -138,9 +137,9 @@ def add_extra_years(routed_flux_dataset, years=2000, step=100):
     :return:
     """
     n_t, n_lat, n_lon = routed_flux_dataset.shape[0], routed_flux_dataset.shape[1], routed_flux_dataset.shape[2]
-
+    
     t_list = list(map(int, np.arange(-int(years), n_t * step + int(years), step)))
-
+    
     processed_dataset = np.zeros((n_t + int(years / step) * 2, n_lat, n_lon))
     processed_dataset[int(years / step):int(years / step) + n_t] = routed_flux_dataset
     for t in range(int(years / step) + n_t, n_t + int(years / step) * 2):
@@ -176,9 +175,9 @@ def rect_zone(lon_min, lon_max, lat_min, lat_max, longitudes, latitudes):
     TO DO : The case of an unique longitude or latitude is to be handled with coordinate to index.
 
     """
-
+    
     target = [lon_min, lon_max, lat_min, lat_max]
-
+    
     # # Fit the coordinates to the class extent
     # if isinstance(OcnData) or isinstance(OcnData3D):
     #     for i in range(len(coordinates)):
@@ -192,27 +191,27 @@ def rect_zone(lon_min, lon_max, lat_min, lat_max, longitudes, latitudes):
     #             coordinates[i] = coordinates[i] - 360
     #         elif coordinates[i] < 0:
     #             coordinates[i] = coordinates[i] + 360
-
+    
     if target[0] == target[1] and target[2] == target[3]:
         # Single longitude and latitude
         x, y = (coordinates_to_indexes(target[0], target[2], longitudes, latitudes))
         x, y = [int(x)], [int(y)]
         return list(zip(x, y))
-
+    
     elif target[0] == target[1]:
         # Single longitude but range of latitudes
         j = int(coordinates_to_indexes(target[0], target[2], longitudes, latitudes)[0])
         i = ma.where((latitudes >= target[2]) & (latitudes <= target[3]))[1]
         return list(zip(i, [j] * len(i)))
-
+    
     elif target[2] == target[3]:
         # Single latitude but range of longitudes
         i = int(coordinates_to_indexes(target[0], target[2], longitudes, latitudes)[1])
         j = ma.where((longitudes >= target[0]) & (longitudes <= target[1]))[0]
         return list(zip([i] * len(j), j))
-
+    
     else:
-
+        
         i = ma.where((longitudes >= target[0]) & (longitudes <= target[1]))
         j = ma.where((latitudes >= target[2]) & (latitudes <= target[3]))
         return list(zip(i, j))
@@ -221,7 +220,7 @@ def rect_zone(lon_min, lon_max, lat_min, lat_max, longitudes, latitudes):
 def avg_rect_zone(values, lon_min, lon_max, lat_min, lat_max, longitudes, latitudes, lsm=None):
     zone = rect_zone(lon_min, lon_max, lat_min, lat_max, longitudes, latitudes)[0]
     avg, n = 0, 0
-
+    
     for i in zone[0]:
         for j in zone[1]:
             if lsm is None or lsm[j, i] == 0:
@@ -233,10 +232,10 @@ def avg_rect_zone(values, lon_min, lon_max, lat_min, lat_max, longitudes, latitu
 def sum_rect_zone(values, lon_min, lon_max, lat_min, lat_max, longitudes, latitudes, lsm=None):
     zone = rect_zone(lon_min, lon_max, lat_min, lat_max, longitudes, latitudes)[0]
     sum = 0
-
+    
     for i in zone[0]:
         for j in zone[1]:
             if lsm is None or lsm[j, i] == 0:
                 sum += values[j, i]
-
+    
     return sum

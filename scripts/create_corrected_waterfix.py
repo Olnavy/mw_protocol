@@ -1,6 +1,5 @@
 import sys
-sys.path.append('glac1d_meltwater')
-import saving
+import glac_mw.saving as saving
 import xarray as xr
 
 experiments = ["teadv3", "teada3", "teaeb3", "teadb3", "teaec3", "teadc3", "teaed3", "teadd3", "teaee3", "teade3",

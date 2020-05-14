@@ -1,9 +1,4 @@
-import hadcm3_deglac_glac1d.routing as routing
-import hadcm3_deglac_glac1d.spreading as spreading
-import hadcm3_deglac_glac1d.saving as saving
-import hadcm3_deglac_glac1d.glac1d_toolbox as tb
-
-# import glac1d_meltwater.glac1d_toolbox as tb
+import glac_mw.glac1d_toolbox as tb
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
@@ -14,22 +9,21 @@ import xarray as xr
 # ---------------------------------- #
 
 def flux_ts(mode, start, end, spreaded, ds_mw_path):
-
     print("__ Flux time serie algorithm")
-
+    
     ds = xr.open_dataset(ds_mw_path, decode_times=False)
     t = ds.t.values
     ts = ts_flux_meltwater_dataset(ds, "kg/m2/s")
-
+    
     figMap, ((axPac, axAtl), (axGr, axArc), (axFis, axAnt)) = plt.subplots(nrows=3, ncols=2, figsize=(26, 26))
-
+    
     axPac.plot(t, ts[0], label="Pacific", color="blue", linestyle="-")
     axPac.set_ylabel("Meltwater flux (Sv)")
     axPac.ticklabel_format(style="sci")
     axPac.legend(loc="upper right")
     axPac.set_xlabel("Years")
     axPac.set_title("Pacific")
-
+    
     axAtl.plot(t, ts[1][0], label="Hudson Bay", color="blue", linestyle="-")
     axAtl.plot(t, ts[1][1], label="Gulf of Mexico", color="green", linestyle="-")
     axAtl.plot(t, ts[1][2], label="Labrador sea", color="orange", linestyle="-")
@@ -40,7 +34,7 @@ def flux_ts(mode, start, end, spreaded, ds_mw_path):
     axAtl.legend(loc="upper right")
     axAtl.set_xlabel("Years")
     axAtl.set_title("Atlantic")
-
+    
     axGr.plot(t, ts[2][0], label="West Greenland", color="blue", linestyle="-")
     axGr.plot(t, ts[2][1], label="East Greenland", color="green", linestyle="-")
     axGr.plot(t, ts[2][2], label="Arctic Greenland", color="orange", linestyle="-")
@@ -49,7 +43,7 @@ def flux_ts(mode, start, end, spreaded, ds_mw_path):
     axGr.legend(loc="upper right")
     axGr.set_xlabel("Years")
     axGr.set_title("Greenland")
-
+    
     axArc.plot(t, ts[3][0], label="Nunavut", color="blue", linestyle="-")
     axArc.plot(t, ts[3][1], label="Arctic", color="green", linestyle="-")
     axArc.plot(t, ts[3][2], label="Greenland Arctic", color="orange", linestyle="-")
@@ -58,19 +52,19 @@ def flux_ts(mode, start, end, spreaded, ds_mw_path):
     axArc.legend(loc="upper right")
     axArc.set_xlabel("Years")
     axArc.set_title("Arctic")
-
+    
     axFis.plot(t, ts[4], color="blue", linestyle="-")
     axFis.set_ylabel("Meltwater flux (Sv)")
     axFis.ticklabel_format(style="sci")
     axFis.set_xlabel("Years")
     axFis.set_title("Fenoscandian Ice Sheet")
-
+    
     axAnt.plot(t, ts[5], color="blue", linestyle="-")
     axAnt.set_ylabel("Meltwater flux (Sv)")
     axAnt.ticklabel_format(style="sci")
     axAnt.set_xlabel("Years")
     axAnt.set_title("Antarctica")
-
+    
     spreaded_name = (spreaded is True) * "_s"
     sav_path = f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/time_series/{mode}_{start}_{end}{spreaded_name}.png"
     print(f"Saving at {sav_path}")
@@ -90,7 +84,7 @@ def ts_flux_meltwater_dataset(ds_flux, mode):
     else:
         values = ds_flux.discharge.values
     longitudes, latitudes = ds_flux.longitude.values, ds_flux.latitude.values
-
+    
     lon_ant_min, lon_ant_max, lat_ant_min, lat_ant_max = 0, 359, -80, -55
     flux_ant = [0] * n_t
     lon_pac_min, lon_pac_max, lat_pac_min, lat_pac_max = 120, 250, 20, 68
@@ -120,13 +114,13 @@ def ts_flux_meltwater_dataset(ds_flux, mode):
     flux_arc = [0] * n_t
     lon_garc_min, lon_garc_max, lat_garc_min, lat_garc_max = 280, 360, 80, 89
     flux_garc = [0] * n_t
-
+    
     for t in range(n_t):
         # Land sea mask
         # land_sea_mask_path = "../../data/Proj_GLAC1D/ocean_masks/" + lsm_names[t] + ".qrparm.omask.nc"
         # land_sea_mask = xr.open_dataset(land_sea_mask_path).lsm.values
         land_sea_mask = None
-
+        
         flux_ant[t] = tb.sum_rect_zone(values[t], lon_ant_min, lon_ant_max, lat_ant_min, lat_ant_max, longitudes,
                                        latitudes, land_sea_mask)
         flux_pac[t] = tb.sum_rect_zone(values[t], lon_pac_min, lon_pac_max, lat_pac_min, lat_pac_max, longitudes,
@@ -162,19 +156,19 @@ def ts_flux_meltwater_dataset(ds_flux, mode):
         flux = flux_ant[t] + flux_pac[t] + flux_hud[t] + flux_gm[t] + flux_ls[t] + flux_ne[t] + flux_gsl[t] + flux_wgr[
             t] + flux_egr[t] + flux_agr[t] + flux_fis[t] + flux_nua[t] + flux_arc[t] + flux_garc[t]
         print(f"____ Computation time step : {t}. Total flux : {flux}")
-
+    
     return (flux_pac, (flux_hud, flux_gm, flux_ls, flux_ne, flux_gsl), (flux_wgr, flux_egr, flux_agr),
             (flux_nua, flux_arc, flux_garc), flux_fis, flux_ant)
 
 
 def scatter_mask(routed_mask):
     x, y, s = [], [], []
-
+    
     for i in range(routed_mask.shape[0]):
         for j in range(routed_mask.shape[1]):
             if not np.isnan(routed_mask[i, j]) and routed_mask[i, j]:
                 x.append(j), y.append(i), s.append(routed_mask[i, j])
-
+    
     s = np.array(s) / np.max(s) * 1000
-
+    
     return x, y, s

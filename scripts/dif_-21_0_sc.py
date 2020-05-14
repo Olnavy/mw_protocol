@@ -1,16 +1,10 @@
-import sys
 import xarray as xr
-sys.path.append('glac1d_meltwater')
-import routing
-import spreading
-import saving
-import plotting
-import glac1d_toolbox as tb
+import glac_mw.routing as routing
+import glac_mw.spreading as spreading
+import glac_mw.saving as saving
+import glac_mw.plottig as plotting
+import glac_mw.glac1d_toolbox as tb
 
-# import glac1d_meltwater.routing as routing
-# import glac1d_meltwater.spreading as spreading
-# import glac1d_meltwater.saving as saving
-# import glac1d_meltwater.plottig as plotting
 
 start, end = -21, 0
 
