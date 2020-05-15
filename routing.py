@@ -25,14 +25,17 @@ def routing(ds_hice, ds_pointer, ds_lsm, mode_flux="m3/S", mode_lon="double",
     
     print("__ Routing algorithm")
     
+    # Activate debuging mode.
+    tmax = len(ds_hice.HGLOBH.T122KP1) if t_debug is None else t_debug
+
+    
     # Time serie of routed files.
+    land_sea_mask = ds_lsm.lsm.values
     routed_flux_serie = np.zeros(
-        (len(ds_hice.HGLOBH.T122KP1), ds_lsm.lsm.values.shape[0], ds_lsm.lsm.values.shape[1]))
+        (tmax, land_sea_mask.shape[0], land_sea_mask.shape[1]))
     
     regridder = tb.hadcm3_regridding_method(ds_hice, ds_lsm, reuse_weights=True)
     
-    # Activate debuging mode.
-    tmax = routed_flux_serie.shape[0] if t_debug is None else t_debug
     
     for t in range(0, tmax):
         flux = hi_to_discharge(ds_hice, t, mode_flux)
@@ -46,7 +49,6 @@ def routing(ds_hice, ds_pointer, ds_lsm, mode_flux="m3/S", mode_lon="double",
         hadcm3_mask = hadcm3_mask * np.sum(routed_mask) / np.sum(hadcm3_mask)  # to correct the total flux
         
         # Overlapping
-        land_sea_mask = ds_lsm.lsm.values
         shifted_mask = overlapping_method(hadcm3_mask, land_sea_mask, mode_lon=mode_lon, mode_shape=mode_shape)
         
         # Smoothing of the results
@@ -167,10 +169,10 @@ def overlapping_method(flux_mask, lsm, mode_lon, mode_shape, verbose=False):
     
     n_j, n_i = flux_mask.shape
     shifted_mask = np.zeros((n_j, n_i))
-    
+        
     for i in range(n_i):
         for j in range(n_j):
-            
+                        
             # There is overlaping if the flux is not null and there is land.
             if flux_mask[j, i] != 0 and lsm[j, i] == 1:
                 
