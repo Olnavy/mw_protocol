@@ -20,6 +20,8 @@ def saving(discharge, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, step=1
     
     folder_path, file_path, title, mode_tag = output_names(start_year, end_year, step, mode, mode_smooth, lsm_name)
     
+    create_output_folder(folder_path)
+    
     # m3/s to kg/m2/s
     processed_discharge = m3s_to_kgm2s(discharge, longitude, latitude)
     
@@ -48,15 +50,17 @@ def correcting_time(ds_ref, new_start_year, new_end_year, new_step):
     
     processed_time, processed_mw = process_time(discharge_ref, new_start_year, new_end_year, t_ref)
     
-    if mode_smooth[-1] == "p":
+    if mode_smooth[-2] == "p":
         folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "patched",
                                                                mode_smooth, lsm_name)
-    elif mode_smooth[-1] == "s":
+    elif mode_smooth[-2] == "s":
         folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "spreaded",
                                                                mode_smooth, lsm_name)
     else:
         folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "routed",
                                                                mode_smooth, lsm_name)
+    
+    create_output_folder(folder_path)
     
     ds = create_dataset(processed_mw, processed_time, longitude, latitude, title, new_start_year, new_end_year,
                         new_step, mode_tag, lsm_name)
@@ -72,12 +76,13 @@ def correcting_time(ds_ref, new_start_year, new_end_year, new_step):
 
 def create_output_folder(folder_name):
     dir_name = f"{output_folder}/{folder_name}"
+    print("____ Creating directory at ", dir_name)    
     try:
         # Create target Directory
         os.mkdir(dir_name)
-        print("Directory ", dir_name, " created.")
+        print("____ Directory ", dir_name, " created.")
     except FileExistsError:
-        print("Directory ", dir_name, " already exists.")
+        print("____ Directory ", dir_name, " already exists.")
 
 
 def create_dataset(discharge, time, longitude, latitude, title, start_year, end_year, step, mode_tag, lsm_name):
@@ -118,19 +123,19 @@ def output_names(start_year, end_year, step, mode, mode_smooth, lsm_name):
     file_path = f"{lsm_name}.qrparm.glac_mw.nc"
     
     if mode == "routed":
-        folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}/"
+        folder_path = f"wfix[{start_year}_{end_year}_{step}_{mode_smooth}]/"
         title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
                 f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
                 f"- {mode_smooth} mode processing - spreading applied but no patch correction."
         mode_tag = f"{mode_smooth}"
     elif mode == "spreaded":
-        folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}s/"
+        folder_path = f"wfix[{start_year}_{end_year}_{step}_{mode_smooth}_s]/"
         title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
                 f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
                 f"- {mode_smooth} mode processing - spreading applied but no patch correction."
         mode_tag = f"{mode_smooth}s"
     elif mode == "patched":
-        folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}sp/"
+        folder_path = f"wfix[{start_year}_{end_year}_{step}_{mode_smooth}_sp]/"
         title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
                 f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
                 f"- {mode_smooth} mode processing - spreading and patch correction applied."

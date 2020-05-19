@@ -245,6 +245,10 @@ class Box:
     def __repr__(self):
         return str(self.no) + ' ocean cells in the box'
 
+    def cycle_box(self):
+        return [[self.lonmin, self.lonmin, self.lonmax, self.lonmax, self.lonmin],
+                [self.latmin, self.latmax, self.latmax, self.latmin, self.latmin]]
+
 
 class Region:
     

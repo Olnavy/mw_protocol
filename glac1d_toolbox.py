@@ -79,20 +79,6 @@ def running_mean(data, n):
     return out_mean
 
 
-# -------------------------------------- #
-# ---------- PLOTTING METHODS ---------- #
-# -------------------------------------- #
-
-
-def cycle_plot_rect_zone(lon_min, lon_max, lat_min, lat_max):
-    return [[lon_min, lon_min, lon_max, lon_max, lon_min], [lat_min, lat_max, lat_max, lat_min, lat_min]]
-
-
-# ---------------------------------------- #
-# ---------- ZONAL MEAN METHODS ---------- #
-# ---------------------------------------- #
-
-
 # ---------------------------------------- #
 # ---------- REGRIDDING METHODS ---------- #
 # ---------------------------------------- #
