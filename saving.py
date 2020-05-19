@@ -9,39 +9,80 @@ import datetime
 # ---------- MAIN METHOD ---------- #
 # --------------------------------- #
 
+# To change for a new user
 output_folder = "/nfs/annie/eeymr/work/outputs/proj_glac_mw"
 
 
-def saving(discharge_mw, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, step=100, mode_smooth="diff"):
-    
+def saving(discharge, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, step=100, mode_smooth="diff"):
     print("__ Saving algorithm")
     
     lsm, longitude, latitude = ds_lsm.lsm.values, ds_lsm.longitude.values, ds_lsm.latitude.values
     
-    if mode == "routed":
-        folder_path, file_path, title = routed_to_netcdf(start_year, end_year, step, mode_smooth, lsm_name)
-    elif mode == "spreaded":
-        folder_path, file_path, title = spreaded_to_netcdf(start_year, end_year, step, mode_smooth, lsm_name)
-    elif mode == "corrected":
-        folder_path, file_path, title = corrected_to_netcdf(start_year, end_year, step, mode_smooth, lsm_name)
-    else:
-        print("The mode wasn't recognized.")
-        raise ValueError("Invalid mode.")
-    sav_path = f"{output_folder}/{folder_path}/{file_path}"
+    folder_path, file_path, title, mode_tag = output_names(start_year, end_year, step, mode, mode_smooth, lsm_name)
     
     # m3/s to kg/m2/s
-    processed_mask = m3s_to_kgm2s(discharge_mw, longitude, latitude)
+    processed_discharge = m3s_to_kgm2s(discharge, longitude, latitude)
     
-    masked_mw = masking_method(processed_mask, lsm)
+    # masked array
+    masked_discharge = masking_method(processed_discharge, lsm)
     
-    # time processing
-    t_ref = "to_define"
-    processed_mw, processed_time = process_time(masked_mw, start_year, end_year, t_ref)
+    # time
+    time = np.arange(start_year * 1000, end_year * 1000 + step, step)
     
-    # !!!!!!
+    ds = create_dataset(masked_discharge, time, longitude, latitude, title, start_year, end_year, step,
+                        mode_tag, lsm_name)
     
-    ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude'), processed_mw)},
-                    coords={'t': processed_time, 'latitude': latitude,
+    sav_path = f"{output_folder}/{folder_path}/{file_path}"
+    print(f"__ Saving at: {sav_path}")
+    ds.to_netcdf(sav_path)
+
+
+def correcting_time(ds_ref, new_start_year, new_end_year, new_step):
+    print("__ Correction algorithm")
+    
+    discharge_ref, longitude, latitude, t_ref = \
+        ds_ref.discharge.values, ds_ref.longitude.values, ds_ref.latitude.values, ds_ref.t.values
+    
+    lsm_name = ds_ref.lsm
+    mode_smooth = ds_ref.mode_smooth
+    
+    processed_time, processed_mw = process_time(discharge_ref, new_start_year, new_end_year, t_ref)
+    
+    if mode_smooth[-1] == "p":
+        folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "patched",
+                                                               mode_smooth, lsm_name)
+    elif mode_smooth[-1] == "s":
+        folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "spreaded",
+                                                               mode_smooth, lsm_name)
+    else:
+        folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "routed",
+                                                               mode_smooth, lsm_name)
+    
+    ds = create_dataset(processed_mw, processed_time, longitude, latitude, title, new_start_year, new_end_year,
+                        new_step, mode_tag, lsm_name)
+    
+    sav_path = f"{output_folder}/{folder_path}/{file_path}"
+    print(f"__ Saving at: {sav_path}")
+    ds.to_netcdf(sav_path)
+
+
+# ------------------------------------ #
+# ---------- SAVING METHODS ---------- #
+# ------------------------------------ #
+
+def create_output_folder(folder_name):
+    dir_name = f"{output_folder}/{folder_name}"
+    try:
+        # Create target Directory
+        os.mkdir(dir_name)
+        print("Directory ", dir_name, " created.")
+    except FileExistsError:
+        print("Directory ", dir_name, " already exists.")
+
+
+def create_dataset(discharge, time, longitude, latitude, title, start_year, end_year, step, mode_tag, lsm_name):
+    ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude'), discharge)},
+                    coords={'t': time, 'latitude': latitude,
                             'longitude': longitude})
     ds['discharge'].attrs['units'] = 'kg m-2 s-1'
     ds['discharge'].attrs['longname'] = 'P-E FLUX CORRECTION       KG/M2/S  A'
@@ -63,81 +104,54 @@ def saving(discharge_mw, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, ste
     ds['latitude'].attrs['units'] = 'degrees_north'
     
     ds.attrs['title'] = title
+    ds.attrs['start_year'] = start_year
+    ds.attrs['end_year'] = end_year
+    ds.attrs['steps'] = step
+    ds.attrs['processing'] = mode_tag
+    ds.attrs['lsm'] = lsm_name
     ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
     
-    print(f"____ Saving at: {sav_path}")
-    ds.to_netcdf(sav_path)
+    return ds
 
 
-def fixing(ds_ref, mode_fixing, mode_smooth, start, end, lsm_name, corrected=False):
-    print("__ Fixing algorithm")
+def output_names(start_year, end_year, step, mode, mode_smooth, lsm_name):
+    file_path = f"{lsm_name}.qrparm.glac_mw.nc"
     
-    ref_mw, longitude, latitude, t_ref = \
-        ds_ref.discharge.values, ds_ref.longitude.values, ds_ref.latitude.values, ds_ref.t.values
-    
-    if mode_fixing == "time":
-        processed_mw, processed_time = process_time(ref_mw, start, end, t_ref)
-    #         processed_to_netcdf(processed_mw, processed_time, longitude, latitude, mode_smooth, start, end, lsm_name,
-    #                             corrected)
+    if mode == "routed":
+        folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}/"
+        title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
+                f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
+                f"- {mode_smooth} mode processing - spreading applied but no patch correction."
+        mode_tag = f"{mode_smooth}"
+    elif mode == "spreaded":
+        folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}s/"
+        title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
+                f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
+                f"- {mode_smooth} mode processing - spreading applied but no patch correction."
+        mode_tag = f"{mode_smooth}s"
+    elif mode == "patched":
+        folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}sp/"
+        title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
+                f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
+                f"- {mode_smooth} mode processing - spreading and patch correction applied."
+        mode_tag = f"{mode_smooth}sc"
     else:
         print("The mode wasn't recognized.")
-
-
-# ------------------------------------ #
-# ---------- SAVING METHODS ---------- #
-# ------------------------------------ #
-
-def routed_to_netcdf(start_year, end_year, step, mode_smooth, lsm_name):
-    folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}/"
-    file_path = f"{lsm_name}.qrparm.glac_mw.nc"
+        raise ValueError("Invalid mode.")
     
-    title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
-            f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
-            f"- {mode_smooth} mode processing - no spreading or patch correction."
-    
-    return folder_path, file_path, title
+    return folder_path, file_path, title, mode_tag
 
 
-def spreaded_to_netcdf(start_year, end_year, step, mode_smooth, lsm_name):
-    folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}s/"
-    file_path = f"{lsm_name}.qrparm.glac_mw.nc"
-    title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
-            f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
-            f"- {mode_smooth} mode processing - spreading applied but no patch correction."
-    
-    return folder_path, file_path, title
-
-
-def corrected_to_netcdf(start_year, end_year, step, mode_smooth, lsm_name):
-    folder_path = f"wfix_{start_year}_{end_year}_{step}_{mode_smooth}sc/"
-    file_path = f"{lsm_name}.qrparm.glac_mw.nc"
-    title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
-            f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
-            f"- {mode_smooth} mode processing - spreading and patch correction applied."
-    
-    return folder_path, file_path, title
-
-
-def create_output_folder(folder_name):
-    dir_name = f"/nfs/annie/eeymr/work/outputs/proj_glac_mw/{folder_name}"
-    
-    try:
-        # Create target Directory
-        os.mkdir(dir_name)
-        print("Directory ", dir_name, " Created ")
-    except FileExistsError:
-        print("Directory ", dir_name, " already exists")
-
-
-def save_corrected_waterfix(ds_wfix, corrected_waterfix, expt_name, start_date, end_date):
-    sav_path =\
-        f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/corrected_waterfix/{expt_name}.qrparam.waterfix.hadcm3.corrected.nc"
+def save_patched_waterfix(ds_wfix, patched_waterfix, expt_name, start_date, end_date):
+    sav_path = \
+        f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/patched_waterfix/{expt_name}.qrparam.waterfix.hadcm3.patched.nc"
     print(f"____ Saving at: {sav_path}")
     
-    longitude, latitude, t, depth = ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
+    longitude, latitude, t, depth = \
+        ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
     
     # to netcdf
-    ds = xr.Dataset({'field672': (('t', 'depth', 'latitude', 'longitude'), corrected_waterfix)},
+    ds = xr.Dataset({'field672': (('t', 'depth', 'latitude', 'longitude'), patched_waterfix)},
                     coords={'t': t, 'depth': depth, 'latitude': latitude, 'longitude': longitude})
     
     ds['t'].attrs['long_name'] = 'time'
@@ -160,7 +174,7 @@ def save_corrected_waterfix(ds_wfix, corrected_waterfix, expt_name, start_date, 
     ds['latitude'].attrs['units'] = 'degrees_north'
     
     ds.attrs['title'] = \
-        f"Corrected waterfix for {expt_name} based on the 21k eperiment drift between {start_date} and {end_date}."
+        f"Corrected waterfix for {expt_name} based on the 21k experiment drift between {start_date} and {end_date}."
     ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
     
     ds.to_netcdf(sav_path)
@@ -170,71 +184,63 @@ def save_corrected_waterfix(ds_wfix, corrected_waterfix, expt_name, start_date, 
 # ---------- CONVERSION METHODS ---------- #
 # ---------------------------------------- #
 
-def masking_method(mw, lsm):
-    lsm_3d = np.resize(lsm, mw.shape)
-    return ma.array(mw, mask=lsm_3d)
+def masking_method(discharge, lsm):
+    lsm_3d = np.resize(lsm, discharge.shape)
+    return ma.array(discharge, mask=lsm_3d)
 
 
-def m3s_to_kgm2s(mw, lon, lat):
+def m3s_to_kgm2s(discharge, lon, lat):
     d = 1000  # water density
-    return np.divide(mw * d, tb.surface_matrix(lon, lat))
+    return np.divide(discharge * d, tb.surface_matrix(lon, lat))
 
 
-def kgm2s_to_m3s(mw, lon, lat):
+def kgm2s_to_m3s(discharge, lon, lat):
     d = 1000  # water density
-    return np.multiply(mw / d, tb.surface_matrix(lon, lat))
+    return np.multiply(discharge / d, tb.surface_matrix(lon, lat))
 
 
 # ---------------------------------------- #
 # ---------- PROCESSING METHODS ---------- #
 # ---------------------------------------- #
 
-def process_time(ref_mw, start, end, t_ref):
-    """
-    When the we want an extend different from the reference data set,
-    it is faster and more convenient to process directly the previous outputs.
-    :param ref_mw:
-    :param start:
-    :param end:
-    :return:
-    """
+def process_time(discharge_ref, start, end, t_ref):
     start_k, end_k = start * 1000, end * 1000
     processed_time = np.arange(start_k, end_k + 100, 100)
-    n_t, n_lat, n_lon = ref_mw.shape
-    processed_mw = np.zeros((len(processed_time), n_lat, n_lon))
+    n_t, n_lat, n_lon = discharge_ref.shape
+    discharge_processed = np.zeros((len(processed_time), n_lat, n_lon))
     
     if (start >= -26) and (end <= 0):
         id_start = np.where(t_ref == start_k)[0][0]
         id_end = np.where(t_ref == end_k)[0][0]
         
-        processed_mw[:] = ref_mw[id_start:id_end + 1]
+        discharge_processed[:] = discharge_ref[id_start:id_end + 1]
     
     elif (start < -26) and (end <= 0):
         id_26 = np.where(processed_time == -26000)[0][0]
         id_end = np.where(t_ref == end_k)[0][0]
         
-        processed_mw[:id_26] = ref_mw[0]
-        processed_mw[id_26:] = ref_mw[:id_end]
+        discharge_processed[:id_26] = discharge_ref[0]
+        discharge_processed[id_26:] = discharge_ref[:id_end]
     
     elif (start >= -26) and (end > 0):
         id_start = np.where(t_ref == start_k)[0][0]
         id_0 = np.where(processed_time == 0)[0][0]
         
-        processed_mw[:id_0] = ref_mw[id_start:]
-        processed_mw[id_0:] = ref_mw[-1]
+        discharge_processed[:id_0] = discharge_ref[id_start:]
+        discharge_processed[id_0:] = discharge_ref[-1]
     
     elif (start < -26) and (end > 0):
         id_26 = np.where(processed_time == -26000)[0][0]
         id_0 = np.where(processed_time == 0)[0][0]
         
-        processed_mw[:id_26] = ref_mw[0]
-        processed_mw[id_26: id_0 + 1] = ref_mw[:]
-        processed_mw[id_0:] = ref_mw[-1]
+        discharge_processed[:id_26] = discharge_ref[0]
+        discharge_processed[id_26: id_0 + 1] = discharge_ref[:]
+        discharge_processed[id_0:] = discharge_ref[-1]
     
     else:
         raise ValueError("!!! Start or end paramters incorect")
     
-    return processed_mw, processed_time
+    return discharge_processed, processed_time
 
 
 # -------------------------------------------- #
@@ -253,12 +259,12 @@ def drift_waterfix_patch(path_ref, expt_name, ds_wfix, start_date, end_date):
     return np.nanmean(srf_sal_flux / (end_date - start_date))
 
 
-def corrected_waterfix_patch(waterfix_patch, ds_lsm, ds_wfix):
-    print(f"__ Creation of the corrected waterfix file")
+def patched_waterfix_patch(waterfix_patch, ds_lsm, ds_wfix):
+    print(f"__ Creation of the patched waterfix file")
     longitude, latitude, lsm = ds_lsm.longitude.values, ds_lsm.latitude.values, ds_lsm.lsm.values
     
     wfix = ds_wfix.field672.values
-    corrected_waterfix = wfix
-    corrected_waterfix[0, 0, :, :-2] = (waterfix_patch * (1 - lsm)) + wfix[0, 0, :, :-2]
+    patched_waterfix = wfix
+    patched_waterfix[0, 0, :, :-2] = (waterfix_patch * (1 - lsm)) + wfix[0, 0, :, :-2]
     
-    return corrected_waterfix
+    return patched_waterfix
