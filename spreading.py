@@ -47,7 +47,7 @@ def spreading(discharge_mw, ds_lsm, ds_wf):
     
     # Step 1 : Generate collection and spreading zones
     collection_boxes = generate_collection_boxes()
-    spread_regions = generate_spreading_zones(collection_boxes, umgrid, masked, masked_500m)
+    spread_regions = generate_spreading_regions(collection_boxes, umgrid, masked, masked_500m)
     
     # Step 2 : Spread the collected freshwater in the spreading zones
     spreaded_mw = spreading_method(discharge_mw, spread_regions, surface_matrix)
@@ -448,7 +448,7 @@ def generate_collection_boxes():
     return collection_boxes
 
 
-def generate_spreading_zones(cb, um_grid, masked, masked_500m):
+def generate_spreading_regions(cb, um_grid, masked, masked_500m):
     """
     Method to define the collection boxes.
     :param cb: Collection boxes dictionary.

@@ -42,18 +42,17 @@ def saving(discharge, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, step=1
 def correcting_time(ds_ref, new_start_year, new_end_year, new_step):
     print("__ Correction algorithm")
     
-    discharge_ref, longitude, latitude, t_ref = \
-        ds_ref.discharge.values, ds_ref.longitude.values, ds_ref.latitude.values, ds_ref.t.values
+    longitude, latitude = ds_ref.longitude.values, ds_ref.latitude.values
     
     lsm_name = ds_ref.lsm
-    mode_smooth = ds_ref.mode_smooth
+    mode_smooth = ds_ref.processing
     
-    processed_time, processed_mw = process_time(discharge_ref, new_start_year, new_end_year, t_ref)
+    processed_mw, processed_time = process_time(ds_ref, new_start_year, new_end_year, new_step)
     
-    if mode_smooth[-2] == "p":
+    if mode_smooth[-1] == "p":
         folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "patched",
                                                                mode_smooth, lsm_name)
-    elif mode_smooth[-2] == "s":
+    elif mode_smooth[-1] == "s":
         folder_path, file_path, title, mode_tag = output_names(new_start_year, new_end_year, new_step, "spreaded",
                                                                mode_smooth, lsm_name)
     else:
@@ -111,7 +110,7 @@ def create_dataset(discharge, time, longitude, latitude, title, start_year, end_
     ds.attrs['title'] = title
     ds.attrs['start_year'] = start_year
     ds.attrs['end_year'] = end_year
-    ds.attrs['steps'] = step
+    ds.attrs['step'] = step
     ds.attrs['processing'] = mode_tag
     ds.attrs['lsm'] = lsm_name
     ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
@@ -123,23 +122,23 @@ def output_names(start_year, end_year, step, mode, mode_smooth, lsm_name):
     file_path = f"{lsm_name}.qrparm.glac_mw.nc"
     
     if mode == "routed":
-        folder_path = f"wfix[{start_year}_{end_year}_{step}_{mode_smooth}]/"
+        folder_path = f"wfix.{start_year}_{end_year}_{step}.{mode_smooth}"
         title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
                 f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
                 f"- {mode_smooth} mode processing - spreading applied but no patch correction."
         mode_tag = f"{mode_smooth}"
     elif mode == "spreaded":
-        folder_path = f"wfix[{start_year}_{end_year}_{step}_{mode_smooth}_s]/"
+        folder_path = f"wfix.{start_year}_{end_year}_{step}.{mode_smooth}_s"
         title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
                 f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
                 f"- {mode_smooth} mode processing - spreading applied but no patch correction."
-        mode_tag = f"{mode_smooth}s"
+        mode_tag = f"{mode_smooth}_s"
     elif mode == "patched":
-        folder_path = f"wfix[{start_year}_{end_year}_{step}_{mode_smooth}_sp]/"
+        folder_path = f"wfix.{start_year}_{end_year}_{step}.{mode_smooth}_sp"
         title = f"waterfix for transient GLAC1D last delgaciation HadCM3 simulations " \
                 f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
                 f"- {mode_smooth} mode processing - spreading and patch correction applied."
-        mode_tag = f"{mode_smooth}sc"
+        mode_tag = f"{mode_smooth}_sc"
     else:
         print("The mode wasn't recognized.")
         raise ValueError("Invalid mode.")
@@ -208,9 +207,24 @@ def kgm2s_to_m3s(discharge, lon, lat):
 # ---------- PROCESSING METHODS ---------- #
 # ---------------------------------------- #
 
-def process_time(discharge_ref, start, end, t_ref):
+def process_time(ds_ref, start, end, new_step):
+    
+    discharge_ref, t_ref, step_ref = ds_ref.discharge.values, ds_ref.t.values, ds_ref.step.values
+    
+    if len(t_ref)==1:
+        print("____ Impossible to process time for a single step discharge array.")
+        return discharge_ref, t_ref
+    
+    if new_step<step_ref:
+        raise ValueError("The new step is smaller than the old one.")
+    elif new_step//step_ref != new_step/step_ref:
+        raise ValueError("The new step should be a multiple of the old one.")
+    else:
+        inc = new_step/step_ref
+    
+    start_ref, end_ref = ds_ref.start_year, ds_ref.end_year
     start_k, end_k = start * 1000, end * 1000
-    processed_time = np.arange(start_k, end_k + 100, 100)
+    processed_time = np.arange(start_k, end_k + 100, step)
     n_t, n_lat, n_lon = discharge_ref.shape
     discharge_processed = np.zeros((len(processed_time), n_lat, n_lon))
     
@@ -218,7 +232,7 @@ def process_time(discharge_ref, start, end, t_ref):
         id_start = np.where(t_ref == start_k)[0][0]
         id_end = np.where(t_ref == end_k)[0][0]
         
-        discharge_processed[:] = discharge_ref[id_start:id_end + 1]
+        discharge_processed[::inc] = discharge_ref[id_start:id_end + 1]
     
     elif (start < -26) and (end <= 0):
         id_26 = np.where(processed_time == -26000)[0][0]
