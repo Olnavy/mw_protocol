@@ -39,7 +39,7 @@ def saving(discharge, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, step=1
     ds.to_netcdf(sav_path)
 
 
-def corecting(ds_ref, new_start_year=None, new_end_year=None, new_step=None):
+def correcting(ds_ref, new_start_year=None, new_end_year=None, new_step=None):
     print("__ Correction algorithm")
     
     longitude, latitude = ds_ref.longitude.values, ds_ref.latitude.values
