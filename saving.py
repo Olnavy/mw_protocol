@@ -79,19 +79,23 @@ def correcting(ds_ref, new_start_year=None, new_end_year=None, new_step=None):
 
 
 def to_waterfix(ds_ref, ds_wfix):
-    longitude, latitude, t, depth = \
-        ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
+    print("__ Conversion to waterfix algorithm")
     
-    discharge, time = ds_ref.discharge.values, ds_ref.time.values
+    longitude, latitude, depth = \
+        ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.depth.values
+    
+    discharge, time = ds_ref.discharge.values, ds_ref.t.values
     start_year, end_year, step, mode, mode_smooth, lsm_name = \
-        ds_ref.title, ds_ref.end_year, ds_ref.step, ds_ref.mode, ds_ref.mode_smooth, ds_ref.lsm_name
+        ds_ref.start_year, ds_ref.end_year, ds_ref.step, ds_ref.mode, ds_ref.mode_smooth, ds_ref.lsm
     
     folder_path, file_path, title = output_names(start_year, end_year, step, mode, mode_smooth, lsm_name,
                                                  file_name='wfix')
     
-    processed_discharge, processed_longitude = discharge_to_waterfix(discharge, longitude)
+    create_output_folder(folder_path)
     
-    ds = create_dataset(processed_discharge, time, processed_longitude, latitude, title, start_year, end_year, step,
+    processed_discharge = discharge_to_waterfix(discharge)
+    
+    ds = create_dataset(processed_discharge, time, longitude, latitude, title, start_year, end_year, step,
                         mode, mode_smooth, lsm_name, depth=depth)
     
     sav_path = f"{output_folder}/{folder_path}/{file_path}"
@@ -120,7 +124,7 @@ def create_dataset(discharge, time, longitude, latitude, title, start_year, end_
         ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude'), discharge)},
                         coords={'t': time, 'latitude': latitude, 'longitude': longitude})
     else:
-        ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude', 'depth'), discharge)},
+        ds = xr.Dataset({'discharge': (('t', 'depth', 'latitude', 'longitude'), discharge)},
                         coords={'t': time, 'depth': depth, 'latitude': latitude, 'longitude': longitude})
     
     ds['discharge'].attrs['units'] = 'kg m-2 s-1'
@@ -153,7 +157,7 @@ def create_dataset(discharge, time, longitude, latitude, title, start_year, end_
         ds.attrs['mode'] = mode
         ds.attrs['mode_smooth'] = mode_smooth
         ds.attrs['lsm'] = lsm_name
-    ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
+    ds.attrs['history'] = f"Created {datetime.date.today()} by Yvan Romé"
     
     return ds
 
@@ -251,7 +255,7 @@ def kgm2s_to_m3s(discharge, lon, lat):
 
 def process_time(ds_ref, start, end, discharge_in=None):
     discharge_ref, t_ref = ds_ref.discharge.values, ds_ref.t.values
-    start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step.values
+    start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step
     
     discharge = discharge_in if discharge_in is not None else discharge_ref
     
@@ -300,20 +304,20 @@ def process_time(ds_ref, start, end, discharge_in=None):
 
 def process_step(ds_ref, new_step):
     discharge_ref, t_ref = ds_ref.discharge.values, ds_ref.t.values
-    start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step.values
+    start_ref, end_ref, step_ref = ds_ref.start_year*1000, ds_ref.end_year*1000, ds_ref.step
     n_t, n_lat, n_lon = discharge_ref.shape
-    
+        
     if new_step < step_ref:
         raise ValueError("The new step is smaller than the old one.")
     elif new_step // step_ref != new_step / step_ref:
         raise ValueError("The new step should be a multiple of the old one.")
     else:
-        inc = new_step / step_ref
+        inc = new_step // step_ref
     
-    processed_time = np.arange(start_ref, end_ref, new_step)
+    processed_time = np.arange(start_ref, end_ref+new_step, new_step)
     discharge_processed = np.zeros((len(processed_time), n_lat, n_lon))
     
-    discharge_processed[::] = discharge_ref[::inc]
+    discharge_processed = discharge_ref[::inc]
     
     return discharge_processed, processed_time
 
@@ -345,15 +349,11 @@ def create_corrected_waterfix(waterfix_patch, ds_lsm, ds_wfix):
     return patched_waterfix
 
 
-def discharge_to_waterfix(discharge, longitude):
+def discharge_to_waterfix(discharge):
     n_t, n_lat, n_lon = discharge.shape
     
-    processed_longitude = np.zeros(n_lon + 2)
-    processed_longitude[0:n_lon] = longitude
-    processed_longitude[n_lon:] = longitude[0:2]
-    
     processed_discharge = np.zeros((n_t, 1, n_lat, n_lon + 2))
-    processed_discharge[:, :, :, 0:n_lon] = discharge
-    processed_discharge[:, :, :, n_lon:] = discharge[:, :, :, 0:2]
+    processed_discharge[:, 0, :, 0:n_lon] = discharge
+    processed_discharge[:, 0, :, n_lon:] = discharge[:, :, 0:2]
     
-    return processed_discharge, processed_longitude
+    return processed_discharge
