@@ -9,11 +9,26 @@ import datetime
 # ---------- MAIN METHOD ---------- #
 # --------------------------------- #
 
-# To change for a new user
+# Change for a new user
 output_folder = "/nfs/annie/eeymr/work/outputs/proj_glac_mw"
 
 
 def saving(discharge, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, step=100, mode_smooth="diff"):
+    """
+    Save a discharge file in the output_folder. Create the directory, convert the discharge and create an xarray
+    dataset based on the options. This method is to be used in first instance, but the correcting method yield the
+    same result bby cropping an existing dataset.
+    :param discharge: Meltwater mass surface flux discharge file [t * lat * lon] numpy array (kg/m2/s)
+    :param ds_lsm: Xarray dataset of the corresponding lsm (for masking operation)
+    :param lsm_name: Name of the base experiment
+    :param mode: Routed, Spreaded or patched. Different stages of processing.
+    :param start_year: Start year of the dataset in ky. Default is -26ky.
+    :param end_year: End year of the dataset in ky. Default is 0ky.
+    :param step: Time step of the dataset in y. Default is 100y.
+    :param mode_smooth: Mode used for routing smoothing algorithm.
+    :return: None
+      """
+    
     print("__ Saving algorithm")
     
     lsm, longitude, latitude = ds_lsm.lsm.values, ds_lsm.longitude.values, ds_lsm.latitude.values
@@ -40,6 +55,17 @@ def saving(discharge, ds_lsm, lsm_name, mode, start_year=-26, end_year=0, step=1
 
 
 def correcting(ds_ref, new_start_year=None, new_end_year=None, new_step=None):
+    """
+    Save a discharge file in the output_folder from an existing dataset.
+    Create the directory, extract and convert the discharge and create an xarray dataset based on the reference.
+    :param ds_ref: Xarray dataset created by a glac_mw method to be processed.
+    :param new_start_year: New start year of the dataset. If the start year is smaller than the old one, the first value
+     of the dataset will be copied on the new years. new_start_year and new_end_year have to be filled at the same time.
+    :param new_end_year: New end year of the dataset. If the end year is bigger than the old one, the last value
+     of the dataset will be copied on the new years. new_start_year and new_end_year have to be filled at the same time.
+    :param new_step: New time step of the dataset. Has to be a multpile of the old one.
+    :return: None
+    """
     print("__ Correction algorithm")
     
     longitude, latitude = ds_ref.longitude.values, ds_ref.latitude.values
@@ -79,6 +105,12 @@ def correcting(ds_ref, new_start_year=None, new_end_year=None, new_step=None):
 
 
 def to_waterfix(ds_ref, ds_wfix):
+    """
+    Convert an existing dataset created from a glac_mw method to a waterfix format.
+    :param ds_ref: Existing discharge dataset.
+    :param ds_wfix: Model waterfix xarray dataset.
+    :return: None
+    """
     longitude, latitude, t, depth = \
         ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
     
@@ -104,6 +136,11 @@ def to_waterfix(ds_ref, ds_wfix):
 # ------------------------------------ #
 
 def create_output_folder(folder_name):
+    """
+    Create an output folder at floder_name if it doesn't exist.
+    :param folder_name: path of the folder to create.
+    :return: None
+    """
     dir_name = f"{output_folder}/{folder_name}"
     print("____ Creating directory at ", dir_name)
     try:
@@ -116,6 +153,23 @@ def create_output_folder(folder_name):
 
 def create_dataset(discharge, time, longitude, latitude, title, start_year, end_year, step, mode, mode_smooth,
                    lsm_name, depth=None):
+    """
+    Create an xarray dataset based on inputs. The waterfix or discharge formats are to be chose with the depth option.
+    :param discharge: Meltwater mass flux discharge file [t * lat * lon] numpy array.
+    :param time: Time series of the discharge.
+    :param longitude: Longitude series of the discharge.
+    :param latitude: Latitude series of the discharge.
+    :param title: Title to give to the dataset, created with output_names.
+    :param start_year: Start year of the dataset in ky.
+    :param end_year: End year of the dataset in ky.
+    :param step: Time step of the dataset in y.
+    :param mode: Routed, Spreaded or patched. Different stages of processing.
+    :param mode_smooth: Mode used for routing smoothing algorithm.
+    :param lsm_name: Name of the model experiment.
+    :param depth: If depth is none, use the discharge format. Else, use the waterfix format with depth value.
+    Default is None (discharge format).
+    :return: Xarray dataset.
+    """
     if depth is None:
         ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude'), discharge)},
                         coords={'t': time, 'latitude': latitude, 'longitude': longitude})
@@ -159,6 +213,17 @@ def create_dataset(discharge, time, longitude, latitude, title, start_year, end_
 
 
 def output_names(start_year, end_year, step, mode, mode_smooth, lsm_name, file_name='discharge'):
+    """
+    Compute the output names from the options.
+    :param start_year: Start year of the dataset in ky.
+    :param end_year: End year of the dataset in ky.
+    :param step: Time step of the dataset in y.
+    :param mode: Routed, Spreaded or patched. Different stages of processing.
+    :param mode_smooth: Mode used for routing smoothing algorithm.
+    :param lsm_name: Name of the model experiment.
+    :param file_name: Discharge or waterfix file.
+    :return:
+    """
     if file_name == 'wfix':
         file_description = 'Waterfix'
     else:
@@ -188,59 +253,42 @@ def output_names(start_year, end_year, step, mode, mode_smooth, lsm_name, file_n
     return folder_path, file_path, title
 
 
-# def save_patched_waterfix(ds_wfix, patched_waterfix, expt_name, start_date, end_date):
-#     sav_path = \
-#         f"/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/patched_waterfix/{expt_name}.qrparam.waterfix.hadcm3.patched.nc"
-#     print(f"____ Saving at: {sav_path}")
-#
-#     longitude, latitude, t, depth = \
-#         ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
-#
-#     # to netcdf
-#     ds = xr.Dataset({'field672': (('t', 'depth', 'latitude', 'longitude'), patched_waterfix)},
-#                     coords={'t': t, 'depth': depth, 'latitude': latitude, 'longitude': longitude})
-#
-#     ds['t'].attrs['long_name'] = 'time'
-#
-#     ds['depth'].attrs['long_name'] = 'depth'
-#
-#     ds['field672'].attrs['units'] = 'kg m-2 s-1'
-#     ds['field672'].attrs['longname'] = 'P-E FLUX CORRECTION       KG/M2/S  A'
-#
-#     ds['longitude'].attrs['long_name'] = 'longitude'
-#     ds['longitude'].attrs['actual_range'] = '0., 359.'
-#     ds['longitude'].attrs['axis'] = 'X'
-#     ds['longitude'].attrs['units'] = 'degrees_east'
-#     ds['longitude'].attrs['modulo'] = '360'
-#     ds['longitude'].attrs['topology'] = 'circular'
-#
-#     ds['latitude'].attrs['long_name'] = 'latitude'
-#     ds['latitude'].attrs['actual_range'] = '-89.5, 89.5'
-#     ds['latitude'].attrs['axis'] = 'y'
-#     ds['latitude'].attrs['units'] = 'degrees_north'
-#
-#     ds.attrs['title'] = \
-#         f"Corrected waterfix for {expt_name} based on the 21k experiment drift between {start_date} and {end_date}."
-#     ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
-#
-#     ds.to_netcdf(sav_path)
-
-
 # ---------------------------------------- #
 # ---------- CONVERSION METHODS ---------- #
 # ---------------------------------------- #
 
 def masking_method(discharge, lsm):
+    """
+    Mask a discharge array using a land sea mask.
+    :param discharge: [t*lat*lon] numpy array.
+    :param lsm: [lat*lon] numpy array.
+    :return: Masked discharge array [t*lat*lon]
+    """
     lsm_3d = np.resize(lsm, discharge.shape)
     return ma.array(discharge, mask=lsm_3d)
 
 
 def m3s_to_kgm2s(discharge, lon, lat):
+    """
+    Convert a discharge volume flux to a discharge surface mass flux.
+    :param discharge: [t*lat*lon] numpy array.
+    :param lon: Longitude series of discharge.
+    :param lat: Latitude series of discharge.
+    :return: Discharge surface mass flux [t*lat*lon] numpy array.
+    """
     d = 1000  # water density
     return np.divide(discharge * d, tb.surface_matrix(lon, lat))
 
 
 def kgm2s_to_m3s(discharge, lon, lat):
+    """
+    Convert a discharge surface mass flux a discharge volume flux.
+    :param discharge: [t*lat*lon] numpy array.
+    :param lon: Longitude series of discharge.
+    :param lat: Latitude series of discharge.
+    :return: Discharge volume flux [t*lat*lon] numpy array.
+    """
+
     d = 1000  # water density
     return np.multiply(discharge / d, tb.surface_matrix(lon, lat))
 
@@ -250,6 +298,15 @@ def kgm2s_to_m3s(discharge, lon, lat):
 # ---------------------------------------- #
 
 def process_time(ds_ref, start, end, discharge_in=None):
+    """
+    Process time of a reference xarray dataset to fit new start and end years.
+    If a discharge file is specified, process the discharge file instead.
+    :param ds_ref: Reference xarray dataset to be processed.
+    :param start: new start year in ky.
+    :param end: new end year in ky.
+    :param discharge_in: Optional discharge file to be processed [t*lat*lon] numoy array.
+    :return: processed discharge [t*lat*lon] numpy array and new corresponding time series.
+    """
     discharge_ref, t_ref = ds_ref.discharge.values, ds_ref.t.values
     start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step.values
     
@@ -299,6 +356,12 @@ def process_time(ds_ref, start, end, discharge_in=None):
 
 
 def process_step(ds_ref, new_step):
+    """
+    Process time step of a reference xarray dataset to fit a new time step.
+    :param ds_ref: Reference xarray dataset to be processed.
+    :param new_step: new time step in y.
+    :return: processed discharge [t*lat*lon] numpy array and new corresponding time seriess.
+    """
     discharge_ref, t_ref = ds_ref.discharge.values, ds_ref.t.values
     start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step.values
     n_t, n_lat, n_lon = discharge_ref.shape
@@ -322,7 +385,18 @@ def process_step(ds_ref, new_step):
 # ---------- PATCH/WATERFIX METHODS ---------- #
 # -------------------------------------------- #
 
+
 def calculate_patch(path_ref, expt_name, ds_wfix, start_date, end_date):
+    """
+    !!! DEPRECATED !!!
+    Calculate a drift correction patch based on the output of a reference experiment.
+    :param path_ref: Path of the experiment to extract the patch from.
+    :param expt_name: Name of the reference experiment.
+    :param ds_wfix: Waterfix of the reference experiment.
+    :param start_date: Start year of the dataset in ky.
+    :param end_date: End year of the dataset in ky.
+    :return:
+    """
     print(f"____ Computation of the drift patch")
     wfix = ds_wfix.field672.isel(depth=0).isel(t=0).values[:, :-2]
     srf_sal_flux = np.zeros(wfix.shape)
@@ -335,6 +409,14 @@ def calculate_patch(path_ref, expt_name, ds_wfix, start_date, end_date):
 
 
 def create_corrected_waterfix(waterfix_patch, ds_lsm, ds_wfix):
+    """
+    !!! DEPRECATED !!!
+    Add the patch to an existing waterfix to create a corrected waterfix.
+    :param waterfix_patch: Patch create by calculate_patch.
+    :param ds_lsm: LSM xarray dataset.
+    :param ds_wfix: Waterfix xarray dataset.
+    :return:
+    """
     print(f"____ Creation of the patched waterfix file")
     longitude, latitude, lsm = ds_lsm.longitude.values, ds_lsm.latitude.values, ds_lsm.lsm.values
     
@@ -346,6 +428,12 @@ def create_corrected_waterfix(waterfix_patch, ds_lsm, ds_wfix):
 
 
 def discharge_to_waterfix(discharge, longitude):
+    """
+    Add two points of longitude and a coordinate of depth to a discharge array to fit the waterfix format.
+    :param discharge: [t*lat*lon] numpy array.
+    :param longitude: Corresponding longitude series.
+    :return: [t*depth*lat*lon+2] numpy array.
+    """
     n_t, n_lat, n_lon = discharge.shape
     
     processed_longitude = np.zeros(n_lon + 2)
