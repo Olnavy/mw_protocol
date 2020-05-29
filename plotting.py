@@ -75,7 +75,7 @@ def plot_discharge_ts(path_discharge, unit="kg/m2/s", out="save"):
     sav_path = f"{path_discharge[:-3]}.fluxplot.png"
     print(f"Saving at {sav_path}")
     if out == "plot":
-        plt.plot(figMap)
+        figMap.show()
     else:
         figMap.savefig(sav_path)
 
