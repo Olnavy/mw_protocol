@@ -12,14 +12,11 @@ experiments = ['temev', 'temfa', 'temeq', 'temel', 'temeg', 'temeb', 'temfA', 't
 
 ds_hice = xr.open_dataset('/nfs/annie/eeymr/work/data/glac_mw/GLAC1DHiceF26.nc')
 ds_pointer = xr.open_dataset('/nfs/annie/eeymr/work/data/glac_mw/GLAC1DdrainagePointerF26ka.nc')
+ds_wfix = xr.open_dataset("/nfs/annie/earpal/database/experiments/temev/inidata/temev.qrparm.waterfix.nc")
 
 for experiment in experiments:
     lsm_path = f"/nfs/annie/earpal/database/experiments/{experiment}/inidata/{experiment}.qrparm.omask.nc"
-    
     ds_lsm = xr.open_dataset(lsm_path)
-    
-    wfix_path = f"/nfs/annie/earpal/database/experiments/{experiment}/inidata/{experiment}.qrparm.waterfix.nc"
-    ds_wfix = xr.open_dataset(wfix_path)
     
     routed_mw = routing.routing(ds_hice, ds_pointer, ds_lsm, mode_flux="Volume", mode_lon="double",
                                 mode_shape="cross", mode_smooth="differential")
