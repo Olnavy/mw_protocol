@@ -26,7 +26,7 @@ for experiment in experiments:
     
     spreaded_mw = spreading.spreading(routed_mw, ds_lsm, ds_wfix)
 
-    saving.saving(spreaded_mw, ds_lsm, "temev", mode="spreaded", start_year=-26, end_year=0, step=100,
+    saving.saving(spreaded_mw, ds_lsm, experiment, mode="spreaded", start_year=-26, end_year=0, step=100,
                   mode_smooth="diff")
 
 plotting.plot_discharge_ts(
