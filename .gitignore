@@ -5,3 +5,5 @@ __init__.pyc
 __pycache__
 demo/conservative_720x720_73x96.nc
 demo/Overview.ipynb
+scripts/conservative_720x720_144x288.nc
+scripts/nohup.out
