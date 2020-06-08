@@ -111,8 +111,7 @@ def to_waterfix(ds_ref, ds_wfix):
     :param ds_wfix: Model waterfix xarray dataset.
     :return: None
     """
-    longitude, latitude, t, depth = \
-        ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
+    longitude, latitude, depth = ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.depth.values
     
     discharge, time = ds_ref.discharge.values, ds_ref.t.values
     start_year, end_year, step, mode, mode_smooth, lsm_name = \
@@ -436,9 +435,7 @@ def discharge_to_waterfix(discharge, longitude):
     """
     n_t, n_lat, n_lon = discharge.shape
     
-    processed_longitude = np.zeros(n_lon + 2)
-    processed_longitude[0:n_lon] = longitude
-    processed_longitude[n_lon:] = longitude[0:2]
+    processed_longitude = longitude
     
     processed_discharge = np.zeros((n_t, 1, n_lat, n_lon + 2))
     processed_discharge[:, :, :, 0:n_lon] = discharge
