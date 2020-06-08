@@ -114,9 +114,9 @@ def to_waterfix(ds_ref, ds_wfix):
     longitude, latitude, t, depth = \
         ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.t.values, ds_wfix.depth.values
     
-    discharge, time = ds_ref.discharge.values, ds_ref.time.values
+    discharge, time = ds_ref.discharge.values, ds_ref.t.values
     start_year, end_year, step, mode, mode_smooth, lsm_name = \
-        ds_ref.title, ds_ref.end_year, ds_ref.step, ds_ref.mode, ds_ref.mode_smooth, ds_ref.lsm_name
+        ds_ref.title, ds_ref.end_year, ds_ref.step, ds_ref.mode, ds_ref.mode_smooth, ds_ref.lsm
     
     folder_path, file_path, title = output_names(start_year, end_year, step, mode, mode_smooth, lsm_name,
                                                  file_name='wfix')
@@ -308,7 +308,7 @@ def process_time(ds_ref, start, end, discharge_in=None):
     :return: processed discharge [t*lat*lon] numpy array and new corresponding time series.
     """
     discharge_ref, t_ref = ds_ref.discharge.values, ds_ref.t.values
-    start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step.values
+    start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step
     
     discharge = discharge_in if discharge_in is not None else discharge_ref
     
