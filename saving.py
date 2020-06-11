@@ -173,7 +173,7 @@ def create_dataset(discharge, time, longitude, latitude, title, start_year, end_
         ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude'), discharge)},
                         coords={'t': time, 'latitude': latitude, 'longitude': longitude})
     else:
-        ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude', 'depth'), discharge)},
+        ds = xr.Dataset({'discharge': (('t', 'depth', 'latitude', 'longitude'), discharge)},
                         coords={'t': time, 'depth': depth, 'latitude': latitude, 'longitude': longitude})
     
     ds['discharge'].attrs['units'] = 'kg m-2 s-1'
@@ -438,7 +438,7 @@ def discharge_to_waterfix(discharge, longitude):
     processed_longitude = longitude
     
     processed_discharge = np.zeros((n_t, 1, n_lat, n_lon + 2))
-    processed_discharge[:, :, :, 0:n_lon] = discharge
-    processed_discharge[:, :, :, n_lon:] = discharge[:, :, :, 0:2]
+    processed_discharge[:, 0, :, 0:n_lon] = discharge
+    processed_discharge[:, 0, :, n_lon:] = discharge[:,  :, 0:2]
     
     return processed_discharge, processed_longitude
