@@ -17,7 +17,7 @@ for experiment in experiments:
     ds_spreaded = xr.open_dataset(
         f"/nfs/see-fs-01_users/eeymr/work/outputs/proj_glac_mw/glac.-26_0_100.diff_s/{experiment}.discharge.glac_mw.nc",
         decode_times=False)
-    saving.correcting(ds_spreaded, new_start_year=-21, new_end_year=-14)
+    saving.correcting(ds_spreaded, new_start_year=-21, new_end_year=-17)
     
     # to waterfix
     
