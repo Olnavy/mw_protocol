@@ -84,14 +84,8 @@ def correcting(ds_ref, new_start_year=None, new_end_year=None, new_step=None):
     else:
         raise AttributeError("Mode not recognized.")
     
-    if mode_smooth[-1] == "p":
-        folder_path, file_path, title = output_names(new_start_year, new_end_year, new_step, "patched",
-                                                     mode_smooth, lsm_name)
-    elif mode_smooth[-1] == "s":
-        folder_path, file_path, title = output_names(new_start_year, new_end_year, new_step, "spreaded",
-                                                     mode_smooth, lsm_name)
-    else:
-        folder_path, file_path, title = output_names(new_start_year, new_end_year, new_step, "routed",
+    
+    folder_path, file_path, title = output_names(new_start_year, new_end_year, new_step, mode,
                                                      mode_smooth, lsm_name)
     
     create_output_folder(folder_path)
@@ -111,6 +105,7 @@ def to_waterfix(ds_ref, ds_wfix):
     :param ds_wfix: Model waterfix xarray dataset.
     :return: None
     """
+    print("__ To waterfix algorithm")
     longitude, latitude, depth = ds_wfix.longitude.values, ds_wfix.latitude.values, ds_wfix.depth.values
     
     discharge, time = ds_ref.discharge.values, ds_ref.t.values
