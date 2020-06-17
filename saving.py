@@ -84,9 +84,8 @@ def correcting(ds_ref, new_start_year=None, new_end_year=None, new_step=None):
     else:
         raise AttributeError("Mode not recognized.")
     
-    
     folder_path, file_path, title = output_names(new_start_year, new_end_year, new_step, mode,
-                                                     mode_smooth, lsm_name)
+                                                 mode_smooth, lsm_name)
     
     create_output_folder(folder_path)
     
@@ -114,7 +113,7 @@ def to_waterfix(ds_ref, ds_wfix):
     
     folder_path, file_path, title = output_names(start_year, end_year, step, mode, mode_smooth, lsm_name,
                                                  file_name='wfix')
-        
+    
     processed_discharge, processed_longitude = discharge_to_waterfix(discharge, longitude)
     
     ds = create_dataset(processed_discharge, time, processed_longitude, latitude, title, start_year, end_year, step,
@@ -244,7 +243,6 @@ def output_names(start_year, end_year, step, mode, mode_smooth, lsm_name, file_n
         print("The mode wasn't recognized.")
         raise ValueError("Invalid mode.")
     
-    
     return folder_path, file_path, title
 
 
@@ -283,7 +281,7 @@ def kgm2s_to_m3s(discharge, lon, lat):
     :param lat: Latitude series of discharge.
     :return: Discharge volume flux [t*lat*lon] numpy array.
     """
-
+    
     d = 1000  # water density
     return np.multiply(discharge / d, tb.surface_matrix(lon, lat))
 
@@ -358,7 +356,7 @@ def process_step(ds_ref, new_step):
     :return: processed discharge [t*lat*lon] numpy array and new corresponding time seriess.
     """
     discharge_ref, t_ref = ds_ref.discharge.values, ds_ref.t.values
-    start_ref, end_ref, step_ref = ds_ref.start_year*1000, ds_ref.end_year*1000, ds_ref.step
+    start_ref, end_ref, step_ref = ds_ref.start_year * 1000, ds_ref.end_year * 1000, ds_ref.step
     n_t, n_lat, n_lon = discharge_ref.shape
     
     if new_step < step_ref:
@@ -367,9 +365,9 @@ def process_step(ds_ref, new_step):
         raise ValueError("The new step should be a multiple of the old one.")
     else:
         inc = new_step // step_ref
-    processed_time = np.arange(start_ref, end_ref+new_step, new_step)
+    processed_time = np.arange(start_ref, end_ref + new_step, new_step)
     discharge_processed = np.zeros((len(processed_time), n_lat, n_lon))
-	
+    
     discharge_processed[::] = discharge_ref[::inc]
     
     return discharge_processed, processed_time
@@ -434,6 +432,6 @@ def discharge_to_waterfix(discharge, longitude):
     
     processed_discharge = np.zeros((n_t, 1, n_lat, n_lon + 2))
     processed_discharge[:, 0, :, 0:n_lon] = discharge
-    processed_discharge[:, 0, :, n_lon:] = discharge[:,  :, 0:2]
+    processed_discharge[:, 0, :, n_lon:] = discharge[:, :, 0:2]
     
     return processed_discharge, processed_longitude
