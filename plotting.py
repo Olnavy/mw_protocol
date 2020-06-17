@@ -9,7 +9,7 @@ import xarray as xr
 # ---------- MAIN METHODS ---------- #
 # ---------------------------------- #
 
-def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save"):
+def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save", running_mean=5):
     """
     Save a discharge flux panel summary plot from a discharge dataset.
     :param path_discharge: Path of the discharge nc file to plot.
@@ -35,13 +35,13 @@ def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save"):
     
     figMap, axMap = plt.subplots(nrows=1, ncols=1, figsize=(14, 7), dpi=200)
     
-    axMap.plot(t, tb.running_mean(flux_na, 5), label="North Atlantic", color="xkcd:sky blue", linestyle="-")
-    axMap.plot(t, tb.running_mean(flux_ns, 5), label="Nordic seas", color="xkcd:salmon", linestyle="-")
-    axMap.plot(t, tb.running_mean(flux_med, 5), label="Mediterranean sea", color="xkcd:olive", linestyle="-")
-    axMap.plot(t, tb.running_mean(flux_arc, 5), label="Arctic", color="xkcd:jade", linestyle="-")
-    axMap.plot(t, tb.running_mean(flux_ss, 5), label="Southern seas", color="xkcd:lavender", linestyle="-")
-    axMap.plot(t, tb.running_mean(flux_pac, 5), label="Pacific", color="xkcd:mustard", linestyle="-")
-    axMap.plot(t, tb.running_mean(flux_tot, 5), label="North Atlantic", color="black", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_na, running_mean), label="North Atlantic", color="xkcd:sky blue", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_ns, running_mean), label="Nordic seas", color="xkcd:salmon", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_med, running_mean), label="Mediterranean sea", color="xkcd:olive", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_arc, running_mean), label="Arctic", color="xkcd:jade", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_ss, running_mean), label="Southern seas", color="xkcd:lavender", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_pac, running_mean), label="Pacific", color="xkcd:mustard", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_tot, running_mean), label="North Atlantic", color="black", linestyle="-")
     
     axMap.legend(loc="upper right")
     axMap.grid(color='grey', linestyle='--', linewidth=1, alpha=0.5)
