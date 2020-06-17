@@ -26,7 +26,7 @@ def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save"):
     t = ds.t.values
     
     flux_na = ts['North_Atlantic']
-    flux_ns = ts['Nordic Seas']
+    flux_ns = ts['Nordic seas']
     flux_med = ts['Mediterranean']
     flux_arc = ts['Arctic']
     flux_ss = ts['Southern seas']
@@ -36,7 +36,7 @@ def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save"):
     figMap, axMap = plt.subplots(nrows=1, ncols=1, figsize=(14, 7), dpi=200)
     
     axMap.plot(t, tb.running_mean(flux_na, 5), label="North Atlantic", color="xkcd:sky blue", linestyle="-")
-    axMap.plot(t, tb.running_mean(flux_ns, 5), label="Nordic Seas", color="xkcd:salmon", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_ns, 5), label="Nordic seas", color="xkcd:salmon", linestyle="-")
     axMap.plot(t, tb.running_mean(flux_med, 5), label="Mediterranean sea", color="xkcd:olive", linestyle="-")
     axMap.plot(t, tb.running_mean(flux_arc, 5), label="Arctic", color="xkcd:jade", linestyle="-")
     axMap.plot(t, tb.running_mean(flux_ss, 5), label="Southern seas", color="xkcd:lavender", linestyle="-")
@@ -130,7 +130,7 @@ def create_discharge_ts(ds_discharge, ds_lsm, unit):
     flux_tot = flux_na + flux_ns + flux_med + flux_arc + flux_ss + flux_pac
     print(f"____ Computation time step : {t}. Total flux : {flux_tot[t]}" for t in range(n_t))
     
-    return {'North_Atlantic': flux_na, 'Nordic seas': flux_ss, 'Mediterranean': flux_med, 'Arctic': flux_arc,
+    return {'North_Atlantic': flux_na, 'Nordic seas': flux_ns, 'Mediterranean': flux_med, 'Arctic': flux_arc,
             'Southern seas': flux_ss, 'Pacific': flux_pac, 'Total': flux_tot}
 
 
