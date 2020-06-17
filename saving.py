@@ -358,7 +358,7 @@ def process_step(ds_ref, new_step):
     :return: processed discharge [t*lat*lon] numpy array and new corresponding time seriess.
     """
     discharge_ref, t_ref = ds_ref.discharge.values, ds_ref.t.values
-    start_ref, end_ref, step_ref = ds_ref.start_year, ds_ref.end_year, ds_ref.step
+    start_ref, end_ref, step_ref = ds_ref.start_year*1000, ds_ref.end_year*1000, ds_ref.step
     n_t, n_lat, n_lon = discharge_ref.shape
     
     if new_step < step_ref:
@@ -367,10 +367,9 @@ def process_step(ds_ref, new_step):
         raise ValueError("The new step should be a multiple of the old one.")
     else:
         inc = new_step // step_ref
-    
     processed_time = np.arange(start_ref, end_ref+new_step, new_step)
     discharge_processed = np.zeros((len(processed_time), n_lat, n_lon))
-    
+	
     discharge_processed[::] = discharge_ref[::inc]
     
     return discharge_processed, processed_time
