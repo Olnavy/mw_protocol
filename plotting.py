@@ -1,4 +1,5 @@
 import glac_mw.glac1d_toolbox as tb
+import glac_mw.spreading as spreading
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
@@ -8,8 +9,134 @@ import xarray as xr
 # ---------- MAIN METHODS ---------- #
 # ---------------------------------- #
 
-def plot_discharge_ts(path_discharge, unit="kg/m2/s", out="save"):
+def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save"):
     """
+    Save a discharge flux panel summary plot from a discharge dataset.
+    :param path_discharge: Path of the discharge nc file to plot.
+    :param path_lsm: Path of land_sea_mask nc file.
+    :param unit: Unit of the discharge field of the discharge nc file.
+    :param out: save or plot.
+    :return:
+    """
+    print("__ Flux time serie algorithm")
+    
+    ds = xr.open_dataset(path_discharge, decode_times=False)
+    ds_lsm = xr.open_dataset(path_lsm)
+    ts = create_discharge_ts(ds, ds_lsm, unit)
+    t = ds.t.values
+    
+    flux_na = ts['North_Atlantic']
+    flux_ns = ts['Nordic Seas']
+    flux_med = ts['Mediterranean']
+    flux_arc = ts['Arctic']
+    flux_ss = ts['Southern seas']
+    flux_pac = ts['Pacific']
+    flux_tot = ts['Total']
+    
+    figMap, axMap = plt.subplots(nrows=1, ncols=1, figsize=(14, 7), dpi=200)
+    
+    axMap.plot(t, tb.running_mean(flux_na, 5), label="North Atlantic", color="xkcd:sky blue", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_ns, 5), label="Nordic Seas", color="xkcd:salmon", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_med, 5), label="Mediterranean sea", color="xkcd:olive", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_arc, 5), label="Arctic", color="xkcd:jade", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_ss, 5), label="Southern seas", color="xkcd:lavender", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_pac, 5), label="Pacific", color="xkcd:mustard", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_tot, 5), label="North Atlantic", color="black", linestyle="-")
+    
+    axMap.legend(loc="upper right")
+    axMap.grid(color='grey', linestyle='--', linewidth=1, alpha=0.5)
+    axMap.spines['top'].set_color('grey')
+    axMap.spines['bottom'].set_color('grey')
+    axMap.spines['left'].set_color('grey')
+    axMap.spines['right'].set_color('grey')
+    
+    axMap.set_ylabel("Meltwater flux (Sv)")
+    axMap.ticklabel_format(style="sci")
+    axMap.set_xlabel("Years")
+    axMap.set_title("Discharge time series")
+    
+    sav_path = f"{path_discharge[:-3]}.fluxplot.png"
+    print(f"Saving at {sav_path}")
+    if out == "plot":
+        figMap.show()
+    else:
+        figMap.savefig(sav_path)
+
+
+def create_discharge_ts(ds_discharge, ds_lsm, unit):
+    """
+    Create the discharge series for plot_discharge_ts.
+    :param ds_discharge: Dataset with discharge to plot.
+    :param ds_lsm: Dataset with land_sea_mask.
+    :param unit: Unit of ds_discharge.
+    :return: Discharge time series in Sv.
+    """
+    
+    lat, lon = spreading.LatAxis(ds_discharge.latitude), spreading.LonAxis(ds_discharge.longitude)
+    umgrid = spreading.Grid(lat, lon)
+    
+    depth, lsm = ds_lsm.depthdepth.values, ds_lsm.lsm.values
+    
+    masked = np.copy(lsm)  # land mask True (1) on land
+    depthm = np.ma.masked_less(depth, 500.0)  # mask areas shallower than 500m
+    masked_500m = np.copy(depthm.mask) + masked  # create binary mask from depth data
+    
+    n_lat, n_lon, n_t = len(ds_discharge.latitude.values), len(ds_discharge.longitude.values), len(
+        ds_discharge.t.values)
+    
+    n_t = len(ds_discharge.t.values)
+    values = convert_discharge_values(ds_discharge, unit)
+    
+    flux_na = [0] * n_t
+    flux_ns = [0] * n_t
+    flux_med = [0] * n_t
+    flux_arc = [0] * n_t
+    flux_ss = [0] * n_t
+    flux_pac = [0] * n_t
+    
+    collection_boxes = spreading.generate_collection_boxes()
+    spread_regions = spreading.generate_spreading_regions(collection_boxes, umgrid, masked, masked_500m)
+    
+    for spread_region in spread_regions:
+        
+        # North American Atlantic
+        if spread_region['name'] in ['US_East_Coast', 'Gulf_of_Mexico', 'LabradorSea_BaffinBay']:
+            spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
+            flux_na += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+        # Nordic seas
+        elif spread_region['name'] in ['Atlantic_GreenlandIceland', 'EastGreenland_Iceland', 'EastIceland',
+                                       'UK_Atlantic', 'Eurasian_GINSeas', 'South_Iceland']:
+            spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
+            flux_ns += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+        # Mediterranean Sea
+        elif spread_region['name'] in ['Mediterranean']:
+            spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
+            flux_med += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+        # Arctic
+        elif spread_region['name'] in ['Greenland_Arctic', 'N_American_Arctic', 'Eurasian_Arctic', 'Siberian_Arctic']:
+            spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
+            flux_arc += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+        # Southern seas
+        elif spread_region['name'] in ['Antarctica_RossSea', 'Antarctica_AmundsenSea', 'Antarctica_WeddellSea',
+                                       'Antarctica_RiiserLarsonSea', 'Antarctica_DavisSea', 'Patagonia_Atlantic']:
+            spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
+            flux_ss += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+        # Pacific
+        elif spread_region['name'] in ['Patagonia_Pacific', 'Russia_Pacific', 'East_Pacific', 'NorthNewZealand_Pacific',
+                                       'SouthNewZealand_Pacific']:
+            spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
+            flux_pac += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+    
+    flux_tot = flux_na + flux_ns + flux_med + flux_arc + flux_ss + flux_pac
+    print(f"____ Computation time step : {t}. Total flux : {flux_tot[t]}" for t in range(n_t))
+    
+    return {'North_Atlantic': flux_na, 'Nordic seas': flux_ss, 'Mediterranean': flux_med, 'Arctic': flux_arc,
+            'Southern seas': flux_ss, 'Pacific': flux_pac, 'Total': flux_tot}
+
+
+def plot_discharge_full_ts(path_discharge, unit="kg/m2/s", out="save"):
+    """
+    !!! DEPRECATED !!!
     Save a discharge flux panel summary plot from a discharge dataset.
     :param path_discharge: Path of the discharge nc file to plot.
     :param unit: Unit of the discharge field of the discharge nc file.
@@ -20,7 +147,7 @@ def plot_discharge_ts(path_discharge, unit="kg/m2/s", out="save"):
     
     ds = xr.open_dataset(path_discharge, decode_times=False)
     t = ds.t.values
-    ts = create_discharge_ts(ds, unit)
+    ts = create_discharge_full_ts(ds, unit)
     
     figMap, ((axPac, axAtl), (axGr, axArc), (axFis, axAnt)) = plt.subplots(nrows=3, ncols=2, figsize=(26, 26))
     
@@ -72,31 +199,24 @@ def plot_discharge_ts(path_discharge, unit="kg/m2/s", out="save"):
     axAnt.set_xlabel("Years")
     axAnt.set_title("Antarctica")
     
-    sav_path = f"{path_discharge[:-3]}.fluxplot.png"
+    sav_path = f"{path_discharge[:-3]}.full.fluxplot.png"
     print(f"Saving at {sav_path}")
     if out == "plot":
         figMap.show()
     else:
         figMap.savefig(sav_path)
 
-def create_discharge_ts(ds_discharge, unit):
+
+def create_discharge_full_ts(ds_discharge, unit):
     """
+    !!! DEPRECATED !!!
     Create the discharge series for plot_discharge_ts.
     :param ds_discharge: Dataset with discharge to plot.
     :param unit: Unit of ds_discharge.
     :return: Discharge time series in Sv.
     """
     n_t = len(ds_discharge.t.values)
-    if unit == "Sv":
-        values = ds_discharge.discharge.values
-    elif unit == "m3/s":
-        values = ds_discharge.discharge.values * 10 ** (-6)
-    elif unit == "kg/m2/s":
-        ds_values = np.where(np.isnan(ds_discharge.discharge.values), 0, ds_discharge.discharge.values)
-        values = np.multiply(ds_values / 1000 * 10 ** (-6),
-                             tb.surface_matrix(ds_discharge.longitude.values, ds_discharge.latitude.values))
-    else:
-        values = ds_discharge.discharge.values
+    values = convert_discharge_values(ds_discharge, unit)
     longitudes, latitudes = ds_discharge.longitude.values, ds_discharge.latitude.values
     
     lon_ant_min, lon_ant_max, lat_ant_min, lat_ant_max = 0, 359, -80, -55
@@ -166,6 +286,20 @@ def create_discharge_ts(ds_discharge, unit):
     
     return (flux_pac, (flux_hud, flux_gm, flux_ls, flux_ne, flux_gsl), (flux_wgr, flux_egr, flux_agr),
             (flux_nua, flux_arc, flux_garc), flux_fis, flux_ant)
+
+
+def convert_discharge_values(ds_discharge, unit):
+    if unit == "Sv":
+        values = ds_discharge.discharge.values
+    elif unit == "m3/s":
+        values = ds_discharge.discharge.values * 10 ** (-6)
+    elif unit == "kg/m2/s":
+        ds_values = np.where(np.isnan(ds_discharge.discharge.values), 0, ds_discharge.discharge.values)
+        values = np.multiply(ds_values / 1000 * 10 ** (-6),
+                             tb.surface_matrix(ds_discharge.longitude.values, ds_discharge.latitude.values))
+    else:
+        values = ds_discharge.discharge.values
+    return values
 
 
 def scatter_mask(routed_mask):

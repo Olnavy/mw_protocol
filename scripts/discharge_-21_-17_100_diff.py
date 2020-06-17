@@ -35,4 +35,5 @@ for experiment in experiments:
 
 plotting.plot_discharge_ts(
     "/nfs/see-fs-01_users/eeymr/work/outputs/proj_glac_mw/glac.-21_-17_100.diff_s/temev.discharge.glac_mw.nc",
+    "/nfs/annie/earpal/database/experiments/temev/inidata/temev.qrparm.omask.nc",
     unit="kg/m2/s", out="save")
