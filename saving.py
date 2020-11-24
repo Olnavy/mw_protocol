@@ -246,6 +246,106 @@ def output_names(start_year, end_year, step, mode, mode_smooth, lsm_name, file_n
     return folder_path, file_path, title
 
 
+def create_corrected_waterfix(path_ref, experiment_name, lsm_name, ds_wfix, start_year, end_year, sav_path=None):
+    """
+    Create corrected waterfix
+    :param path_ref: Path of the experiment to extract the patch from.
+    :param experiment_name: Name of the experiment
+    :param lsm_name: Name of the land sea mask used in the experiment/waterfix
+    :param ds_wfix: Waterfix of the reference experiment.
+    :param start_year: Start year of the dataset in ky.
+    :param end_year: End year of the dataset in ky.
+    :param sav_path: Path of output file.
+    :return:
+    """
+    ds_new = ds_wfix.copy()
+    ds_new.field672.values[0, 0, :, :-2] += calculate_patch(f"{path_ref}/{experiment_name}", ds_wfix, start_year,
+                                                            end_year)
+    ds_new.attrs['title'] = f"Waterfix for HadCM3 simulations [GLAC-1D] - " \
+                            f"Corrected using {experiment_name} salinity drift between years {start_year} " \
+                            f"and {end_year} - Land sea mask : {lsm_name}"
+    ds_new.attrs['history'] = f"Created on {datetime.datetime.now()} by Yvan Romé"
+    
+    if sav_path is not None:
+        ds_new.to_netcdf(sav_path)
+    
+    return ds_new
+
+
+def create_updated_waterfix(discharge, index, year, lsm_name, ds_wfix, sav_path=None):
+    """
+    Create corrected waterfix
+    :param path_ref: Path of the experiment to extract the patch from.
+    :param experiment_name: Name of the experiment
+    :param lsm_name: Name of the land sea mask used in the experiment/waterfix
+    :param ds_wfix: Waterfix of the reference experiment.
+    :param start_year: Start year of the dataset in ky.
+    :param end_year: End year of the dataset in ky.
+    :param sav_path: Path of output file.
+    :return:
+    """
+    ds_new = ds_wfix.copy()
+    ds_new.field672.values[0, 0, :, :-2] += discharge
+    
+    ds_new.attrs['title'] = f"Waterfix for HadCM3 simulations [GLAC-1D] - " \
+                            f"Created using value i={index} of GLAC-1D discharge corresponding to year {year} " \
+                            f"- Land sea mask : {lsm_name}"
+    ds_new.attrs['history'] = f"Created on {datetime.datetime.now()} by Yvan Romé"
+    
+    if sav_path is not None:
+        ds_new.to_netcdf(sav_path)
+    
+    return ds_new
+
+def create_input(ds_discharge, ds_lsm, experiment_name, lsm_name, mode, start_year, end_year, step,
+                 sav_name, sav_folder, mode_smooth="diff"):
+    """
+    Fast function to turn a discharge file into a a file to be converted in the right format.
+    
+    Parameters
+    ----------
+    start_year: int
+        First year of the dataset in ky. (Indicate manually negative values)
+    end_year: int
+        Laste year of the dataset in ky. (Indicate manually negative values)
+    step: int
+        Time step in y
+    mode: str
+        Routed, Spreaded or Patched.
+    lsm_name: str
+        Name of the lsm experiment
+    sav_folder: str
+        Path to the save folder
+    sav_name: str
+        Name of the save file
+    ds_lsm: xarray.Dataset
+        Xarray dataset with the lsm values
+    experiment_name: str
+        Name of the HadCM3 experiment for which this waterfix was initially created.
+    ds_discharge: xarray.Dataset
+        Xarray dataset with the discharge values
+    mode_smooth: str, optional
+        Name of the smoothing algorithm. ex: diff
+    """
+    
+    longitude, latitude = ds_discharge.longitude.values, ds_discharge.latitude.values
+    time = np.arange(start_year * 1000, end_year * 1000 + step, step)
+    lsm = ds_lsm.lsm.values
+    
+    title = f"Waterfix initially created for {experiment_name} HadCM3 experiment." \
+            f"- {lsm_name} land sea mask - {start_year}kya to {end_year}kya with {step}yrs time step " \
+            f"- {mode_smooth} mode processing - {mode} algorithm applied."
+    
+    ds = create_dataset(masking_method(ds_discharge.discharge.values, lsm), time, longitude, latitude, title,
+                        start_year, end_year, step, mode, mode_smooth, lsm_name)
+    
+    sav_path = f"{sav_folder}/{sav_name}"
+    print(f"__ Saving at: {sav_path}")
+    ds.to_netcdf(sav_path)
+    
+    return ds
+
+
 # ---------------------------------------- #
 # ---------- CONVERSION METHODS ---------- #
 # ---------------------------------------- #
@@ -378,12 +478,10 @@ def process_step(ds_ref, new_step):
 # -------------------------------------------- #
 
 
-def calculate_patch(path_ref, expt_name, ds_wfix, start_date, end_date):
+def calculate_patch(path, ds_wfix, start_date, end_date):
     """
-    !!! DEPRECATED !!!
     Calculate a drift correction patch based on the output of a reference experiment.
-    :param path_ref: Path of the experiment to extract the patch from.
-    :param expt_name: Name of the reference experiment.
+    :param path: Path of the experiment to extract the patch from. Format: path/exp
     :param ds_wfix: Waterfix of the reference experiment.
     :param start_date: Start year of the dataset in ky.
     :param end_date: End year of the dataset in ky.
@@ -394,29 +492,10 @@ def calculate_patch(path_ref, expt_name, ds_wfix, start_date, end_date):
     srf_sal_flux = np.zeros(wfix.shape)
     
     for year in np.arange(start_date, end_date, 1):
-        ds = xr.open_dataset(f'{path_ref}/{expt_name}o#pg00000{year}c1+.nc')
+        ds = xr.open_dataset(f'{path}o#pg00000{year}c1+.nc')
         srf_sal_flux += ds.srfSalFlux_ym_uo_1.isel(t=0).isel(unspecified=0).values - wfix
     
-    return np.nanmean(srf_sal_flux / (end_date - start_date))
-
-
-def create_corrected_waterfix(waterfix_patch, ds_lsm, ds_wfix):
-    """
-    !!! DEPRECATED !!!
-    Add the patch to an existing waterfix to create a corrected waterfix.
-    :param waterfix_patch: Patch create by calculate_patch.
-    :param ds_lsm: LSM xarray dataset.
-    :param ds_wfix: Waterfix xarray dataset.
-    :return:
-    """
-    print(f"____ Creation of the patched waterfix file")
-    longitude, latitude, lsm = ds_lsm.longitude.values, ds_lsm.latitude.values, ds_lsm.lsm.values
-    
-    wfix = ds_wfix.field672.values
-    patched_waterfix = wfix
-    patched_waterfix[0, 0, :, :-2] = (waterfix_patch * (1 - lsm)) + wfix[0, 0, :, :-2]
-    
-    return patched_waterfix
+    return srf_sal_flux / (end_date - start_date)
 
 
 def discharge_to_waterfix(discharge, longitude):

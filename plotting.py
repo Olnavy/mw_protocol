@@ -9,7 +9,7 @@ import xarray as xr
 # ---------- MAIN METHODS ---------- #
 # ---------------------------------- #
 
-def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save", running_mean=5):
+def plot_discharge_ts(path_discharge, path_lsm, ds_waterfix, unit="kg/m2/s", out="save", running_mean=5):
     """
     Save a discharge flux panel summary plot from a discharge dataset.
     :param path_discharge: Path of the discharge nc file to plot.
@@ -22,7 +22,7 @@ def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save", runn
     
     ds = xr.open_dataset(path_discharge, decode_times=False)
     ds_lsm = xr.open_dataset(path_lsm)
-    ts = create_discharge_ts(ds, ds_lsm, unit)
+    ts = create_discharge_ts(ds, ds_lsm, ds_waterfix, unit)
     t = ds.t.values
     
     flux_na = ts['North_Atlantic']
@@ -63,11 +63,12 @@ def plot_discharge_ts(path_discharge, path_lsm, unit="kg/m2/s", out="save", runn
         figMap.savefig(sav_path)
 
 
-def create_discharge_ts(ds_discharge, ds_lsm, unit):
+def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit):
     """
     Create the discharge series for plot_discharge_ts.
     :param ds_discharge: Dataset with discharge to plot.
     :param ds_lsm: Dataset with land_sea_mask.
+    :param ds_waterfix: Dataset with the corresponding waterfix
     :param unit: Unit of ds_discharge.
     :return: Discharge time series in Sv.
     """
@@ -85,7 +86,7 @@ def create_discharge_ts(ds_discharge, ds_lsm, unit):
         ds_discharge.t.values)
     
     n_t = len(ds_discharge.t.values)
-    values = convert_discharge_values(ds_discharge, unit)
+    values = convert_discharge_values(ds_discharge, ds_waterfix, unit)
     
     flux_na = [0] * n_t
     flux_ns = [0] * n_t
@@ -134,7 +135,7 @@ def create_discharge_ts(ds_discharge, ds_lsm, unit):
             'Southern seas': flux_ss, 'Pacific': flux_pac, 'Total': flux_tot}
 
 
-def plot_discharge_full_ts(path_discharge, unit="kg/m2/s", out="save"):
+def plot_discharge_full_ts(path_discharge, ds_waterfix, unit="kg/m2/s", out="save"):
     """
     !!! DEPRECATED !!!
     Save a discharge flux panel summary plot from a discharge dataset.
@@ -147,7 +148,7 @@ def plot_discharge_full_ts(path_discharge, unit="kg/m2/s", out="save"):
     
     ds = xr.open_dataset(path_discharge, decode_times=False)
     t = ds.t.values
-    ts = create_discharge_full_ts(ds, unit)
+    ts = create_discharge_full_ts(ds, ds_waterfix, unit)
     
     figMap, ((axPac, axAtl), (axGr, axArc), (axFis, axAnt)) = plt.subplots(nrows=3, ncols=2, figsize=(26, 26))
     
@@ -207,7 +208,7 @@ def plot_discharge_full_ts(path_discharge, unit="kg/m2/s", out="save"):
         figMap.savefig(sav_path)
 
 
-def create_discharge_full_ts(ds_discharge, unit):
+def create_discharge_full_ts(ds_discharge, ds_waterfix, unit):
     """
     !!! DEPRECATED !!!
     Create the discharge series for plot_discharge_ts.
@@ -216,7 +217,7 @@ def create_discharge_full_ts(ds_discharge, unit):
     :return: Discharge time series in Sv.
     """
     n_t = len(ds_discharge.t.values)
-    values = convert_discharge_values(ds_discharge, unit)
+    values = convert_discharge_values(ds_discharge, ds_waterfix, unit)
     longitudes, latitudes = ds_discharge.longitude.values, ds_discharge.latitude.values
     
     lon_ant_min, lon_ant_max, lat_ant_min, lat_ant_max = 0, 359, -80, -55
@@ -288,13 +289,22 @@ def create_discharge_full_ts(ds_discharge, unit):
             (flux_nua, flux_arc, flux_garc), flux_fis, flux_ant)
 
 
-def convert_discharge_values(ds_discharge, unit):
+def convert_discharge_values(ds_discharge, ds_waterfix, unit):
+    """
+    !!!!!!!!!ADD WATERFIX TO SV AND M3/S!!!!!!!!!!!!!!!!
+    :param ds_discharge:
+    :param ds_waterfix:
+    :param unit:
+    :return:
+    """
     if unit == "Sv":
         values = ds_discharge.discharge.values
     elif unit == "m3/s":
         values = ds_discharge.discharge.values * 10 ** (-6)
     elif unit == "kg/m2/s":
-        ds_values = np.where(np.isnan(ds_discharge.discharge.values), 0, ds_discharge.discharge.values)
+        ds_values = ds_discharge.discharge.values - np.resize(
+            ds_waterfix.isel(t=0).isel(depth=0).field672.values[:, :-2], ds_discharge.discharge.values.shape)
+        ds_values = np.where(np.isnan(ds_values), 0, ds_values)
         values = np.multiply(ds_values / 1000 * 10 ** (-6),
                              tb.surface_matrix(ds_discharge.longitude.values, ds_discharge.latitude.values))
     else:
