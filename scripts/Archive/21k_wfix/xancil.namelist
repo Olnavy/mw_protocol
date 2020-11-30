@@ -1,0 +1,112 @@
+ &nam_config
+  ICAL = 2,
+  ISIZE = 64,
+  L32BIT = .FALSE.,
+  VERSION = 4.5,
+  LBIGENDOUT = .TRUE.,
+  LWFIO = .FALSE.,
+  NNCFILES = 13
+  NCFILES = "/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix.nc","/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix15ka_v1_spread.nc","/nfs/hera1/earri/working/IMPACT/HS1/boundary/qrparm.waterfix_ICE6G-H1.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teaev3_meltwater_mask_s.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3_meltwater_mask_s.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21k_meltwater/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_0,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_17,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21.0k/teadv3.qrparm.waterfix_GLAC1D_DEGLAC_s.nc","/nfs/see-fs-01_users/eeymr/scripts/hadcm3_deglac_glac1d/proj_21k_waterfix/teadv3.qrparam.waterfix.hadcm3.glac1d.nc","/nfs/see-fs-01_users/eeymr/scripts/hadcm3_deglac_glac1d/proj_21k_waterfix/qrparam.21k.glac.c.hcm3.nc","/nfs/see-fs-01_users/eeymr/scripts/hadcm3_deglac_glac1d/proj_21k_waterfix/qrparam.21k.glac.noc.hcm3.nc"
+ /
+
+ &nam_gridconfig
+  LVARGRID = .FALSE.,
+  IAVERT = 0,
+  IOVERT = 0,
+  LDEEPSOIL = .TRUE.,
+  NSOILLEV = 4,
+  SOILLEV(1) = 0.1,
+  SOILLEV(2) = 0.25,
+  SOILLEV(3) = 0.65,
+  SOILLEV(4) = 2.0
+ /
+
+ &nam_ozone
+ /
+
+ &nam_smow
+ /
+
+ &nam_slt
+ /
+
+ &nam_soil
+ /
+
+ &nam_veg
+ /
+
+ &nam_vegfrac
+ /
+
+ &nam_vegfunc
+ /
+
+ &nam_vegdist
+ /
+
+ &nam_sst
+ /
+
+ &nam_ice
+ /
+
+ &nam_orog
+ /
+
+ &nam_mask
+ /
+
+ &nam_lfrac
+ /
+
+ &nam_ausrmulti
+ /
+
+ &nam_ausrancil
+ /
+
+ &nam_ts1
+ /
+
+ &nam_flux
+  LFLUX = .TRUE.,
+  FLUX_FILEIN = "/nfs/see-fs-01_users/eeymr/scripts/hadcm3_deglac_glac1d/proj_21k_waterfix/qrparam.21k.glac.noc.hcm3.nc",
+  LFLUX_HEAT = .FALSE.,
+  LFLUX_SALT = .TRUE.,
+  FLUX_NCSALTNAME = "field672",
+  FLUX_FILEOUT = "/nfs/see-fs-01_users/eeymr/scripts/hadcm3_deglac_glac1d/proj_21k_waterfix/qrparam.21k.glac.noc.hcm3",
+  LFLUX_PERIODIC = .FALSE.,
+  IFLUX_MASK = 0,
+  IFLUX_TIMEUSAGE1 = 1,
+  IFLUX_TIMEUSAGE2 = 0,
+  IFLUX_STARTDATE(1) = 0000,
+  IFLUX_STARTDATE(2) = 1,
+  IFLUX_STARTDATE(3) = 1,
+  IFLUX_STARTDATE(4) = 0,
+  IFLUX_STARTDATE(5) = 0,
+  IFLUX_STARTDATE(6) = 0,
+  IFLUX_NTIMES = 1,
+  IFLUX_INTERVAL = 1,
+  IFLUX_INTUNIT = 0,
+  LFLUX_MM = .TRUE.
+ /
+
+ &nam_ousrmulti
+ /
+
+ &nam_ousrancil
+ /
+
+ &nam_genanc_config
+  NANCFILES = 1
+ /
+
+ &nam_genanc
+  LGENANC_FILE(1) = .FALSE.,
+
+ /
+
+ &nam_astart
+ /
+
