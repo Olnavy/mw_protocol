@@ -20,7 +20,7 @@ def routing(ds_hice, ds_pointer, ds_lsm, mode_flux="m3/S", mode_lon="double",
     :param mode_shape: Shape mode for the overlapping method (cf demo). Default is double
     :param mode_smooth: Smoothing mode for the smoothing method (cf demo). Default is double
     :param t_debug: Number of time steps for debugging. None deactivate debugging mode. Default is None.
-    :return: [t*lat*lon] numpy array
+    :return: [t*lat*lon] numpy array. Default unit should be m3/s!
     """
     
     print("__ Routing algorithm")
@@ -74,7 +74,7 @@ def hi_to_discharge(ds_hice, t, flux_mode):
     # Water density
     d = 1000
     
-    print(f"____ Computation time step : {t}.")
+    print(f"__ Computation time step : {t}.")
     
     # Computation of the flux for the time step and conversion from years to seconds.
     if t != len(ds_hice.HGLOBH.T122KP1) - 1:
@@ -86,6 +86,7 @@ def hi_to_discharge(ds_hice, t, flux_mode):
         elif flux_mode == "m3/s":
             flux = - (ds_hice.HGLOBH[t + 1].values - ds_hice.HGLOBH[t].values) / delta_t
         else:
+            print("Mode not recognized")
             flux = - (ds_hice.HGLOBH[t + 1].values - ds_hice.HGLOBH[t].values) / delta_t
     
     else:
@@ -97,6 +98,7 @@ def hi_to_discharge(ds_hice, t, flux_mode):
         elif flux_mode == "m3/s":
             flux = - (ds_hice.HGLOBH[t].values - ds_hice.HGLOBH[t - 1].values) / delta_t
         else:
+            print("Mode not recognized")
             flux = - (ds_hice.HGLOBH[t].values - ds_hice.HGLOBH[t - 1].values) / delta_t
     
     # Multiplying by the surface

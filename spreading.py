@@ -13,6 +13,7 @@ DIRECTLY ADAPTED FROM produce_deglacHadCM3_spread.py by R F Ivanovic
 
 def spreading(discharge_mw, ds_lsm, ds_wf):
     """
+    !!! The spreading is done on m3/s data !!!
     From an initial discharge cube return a new cube with meltwater collected and spreaded over new regions adding the
     waterfix.
     :param discharge_mw: Initial discharge cube [t*lat*lon].
@@ -30,6 +31,7 @@ def spreading(discharge_mw, ds_lsm, ds_wf):
     # Waterfix
     lon_wf, lat_wf, wfix = ds_wf.longitude.values, ds_wf.latitude.values, ds_wf.field672.isel(depth=0).isel(t=0).values
     lon_wf, wfix = lon_wf[:-2], wfix[:, :-2]  # remove 2 extra lon points
+    # Converting the waterfix (kg/m2/s1) to discharge unit (m3/s)
     wfix_3d = convert_waterfix(wfix, discharge_mw, tb.surface_matrix(lon_lsm, lat_lsm))
     
     # Test that the three files use the same coordinate system

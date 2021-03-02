@@ -5,8 +5,8 @@
   VERSION = 4.5,
   LBIGENDOUT = .TRUE.,
   LWFIO = .FALSE.,
-  NNCFILES = 13
-  NCFILES = "/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix.nc","/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix15ka_v1_spread.nc","/nfs/hera1/earri/working/IMPACT/HS1/boundary/qrparm.waterfix_ICE6G-H1.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teaev3_meltwater_mask_s.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3_meltwater_mask_s.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21k_meltwater/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_0,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_17,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21.0k/teadv3.qrparm.waterfix_GLAC1D_DEGLAC_s.nc","/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm.nc","/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm_na.nc","/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm_arc.nc"
+  NNCFILES = 14
+  NCFILES = "/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix.nc","/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix15ka_v1_spread.nc","/nfs/hera1/earri/working/IMPACT/HS1/boundary/qrparm.waterfix_ICE6G-H1.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teaev3_meltwater_mask_s.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3_meltwater_mask_s.nc","/nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21k_meltwater/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_0,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_17,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc","/nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21.0k/teadv3.qrparm.waterfix_GLAC1D_DEGLAC_s.nc","/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm.nc","/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm1.nc","/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm2.nc","/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm_arc2.nc"
  /
 
  &nam_gridconfig
@@ -71,11 +71,11 @@
 
  &nam_flux
   LFLUX = .TRUE.,
-  FLUX_FILEIN = "/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm_arc.nc",
+  FLUX_FILEIN = "/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm_arc2.nc",
   LFLUX_HEAT = .FALSE.,
   LFLUX_SALT = .TRUE.,
   FLUX_NCSALTNAME = "field672",
-  FLUX_FILEOUT = "/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm_arc",
+  FLUX_FILEOUT = "/nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.lgm_arc2",
   LFLUX_PERIODIC = .FALSE.,
   IFLUX_MASK = 0,
   IFLUX_TIMEUSAGE1 = 0,
