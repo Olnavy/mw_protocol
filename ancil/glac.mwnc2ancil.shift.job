@@ -1,12 +1,12 @@
 # Xancil version 0.57 (01-February-2017)
-# Job file created on Mon Nov 23 11:19:19 GMT 2020
+# Job file created on Fri Jan 08 14:56:45 GMT 2021
 
 # config variables
 
 set config(cal) 2
 set config(create) 1
 set config(end) 1
-set config(ncfile) "/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix.nc /nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix15ka_v1_spread.nc /nfs/hera1/earri/working/IMPACT/HS1/boundary/qrparm.waterfix_ICE6G-H1.nc /nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teaev3_meltwater_mask_s.nc /nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3_meltwater_mask_s.nc /nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21k_meltwater/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_0,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_17,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21.0k/teadv3.qrparm.waterfix_GLAC1D_DEGLAC_s.nc /nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoupa.wfix.patch.nc /nfs/annie/eeymr/work/outputs/glac_mw/xoup/wfix.xoup.glac_mw_p.nc"
+set config(ncfile) "/nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix.nc /nfs/see-fs-01_users/earljg/svn_earljg/my_um/MWP1a_routing/qrparm.waterfix15ka_v1_spread.nc /nfs/hera1/earri/working/IMPACT/HS1/boundary/qrparm.waterfix_ICE6G-H1.nc /nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teaev3_meltwater_mask_s.nc /nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3_meltwater_mask_s.nc /nfs/see-fs-01_users/earri/PhDs/Yvan/HS1/create_ancil/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21k_meltwater/teadv3.qrparm.waterfix_GLAC1D-DEGLAC.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_0,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/differential_17,21_100_sf/teadv3.qrparm.waterfix_GLAC1D-DEGLAC-s.nc /nfs/annie/eeymr/work/outputs/Proj_GLAC1D/ancil/21.0k/teadv3.qrparm.waterfix_GLAC1D_DEGLAC_s.nc /nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoupa.wfix.patch.nc /nfs/annie/eeymr/work/outputs/glac_mw/xoup/wfix.xoup.glac_mw_p.nc /nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.glac_ts.nc /nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.glac_21_0.nc"
 set config(pack32) 0
 set config(size) 64
 set config(smfile) ""
@@ -414,8 +414,8 @@ set ts1(useglobtime) 1
 # flux variables
 
 set flux(create) 1
-set flux(file_in) /nfs/annie/eeymr/work/outputs/glac_mw/xoup/wfix.xoup.glac_mw_p.nc
-set flux(file_out) /nfs/annie/eeymr/work/outputs/glac_mw/xoup/wfix.xoup.glac_mw_p
+set flux(file_in) /nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.glac_21_0.nc
+set flux(file_out) /nfs/annie/eeymr/work/outputs/glac_mw/xoup/xoup.wfix.glac_21_0.shift
 set flux(heat) 0
 set flux(heatname) ""
 set flux(interval) 100
@@ -431,7 +431,7 @@ set flux(starthour) 0
 set flux(startmin) 0
 set flux(startmon) 1
 set flux(startsec) 0
-set flux(startyear) 0000
+set flux(startyear) 79000
 set flux(timeusage1) 1
 set flux(timeusage2) 0
 set flux(useglobtime) 0
