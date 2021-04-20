@@ -63,9 +63,10 @@ def plot_discharge_ts(path_discharge, path_lsm, ds_waterfix, unit="kg/m2/s", out
         figMap.savefig(sav_path)
 
 
-def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit):
+def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit, running_mean=None):
     """
     Create the discharge series for plot_discharge_ts.
+    :param running_mean:
     :param ds_discharge: Dataset with discharge to plot.
     :param ds_lsm: Dataset with land_sea_mask.
     :param ds_waterfix: Dataset with the corresponding waterfix
@@ -127,10 +128,20 @@ def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit):
                                        'SouthNewZealand_Pacific']:
             spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
             flux_pac += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
-    
+
     flux_tot = flux_na + flux_ns + flux_med + flux_arc + flux_ss + flux_pac
     print(f"____ Computation time step : {t}. Total flux : {flux_tot[t]}" for t in range(n_t))
-    
+
+    # Apply running means
+    if running_mean:
+        flux_tot = tb.running_mean(flux_tot, running_mean)
+        flux_na = tb.running_mean(flux_na, running_mean)
+        flux_ns = tb.running_mean(flux_ns, running_mean)
+        flux_med = tb.running_mean(flux_med, running_mean)
+        flux_arc = tb.running_mean(flux_arc, running_mean)
+        flux_ss = tb.running_mean(flux_ss, running_mean)
+        flux_pac = tb.running_mean(flux_pac, running_mean)
+
     return {'North_Atlantic': flux_na, 'Nordic seas': flux_ns, 'Mediterranean': flux_med, 'Arctic': flux_arc,
             'Southern seas': flux_ss, 'Pacific': flux_pac, 'Total': flux_tot}
 
