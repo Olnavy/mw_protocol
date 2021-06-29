@@ -1,4 +1,4 @@
-# HadCM3 GLAC1D simulation of the Last deglaciation
+# Meltwater Discharge Protocol
 Description to come
 
 experiments name:
