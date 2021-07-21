@@ -1,5 +1,5 @@
-import glac_mw.glac1d_toolbox as tb
-import glac_mw.spreading as spreading
+import mw_protocol.glac1d_toolbox as tb
+import mw_protocol.spreading as spreading
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
