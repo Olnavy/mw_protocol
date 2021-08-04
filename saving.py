@@ -26,8 +26,8 @@ def create_output_folder(folder_name):
         print("____ Directory ", dir_name, " already exists.")
 
 
-def create_dataset(discharge, time, longitude, latitude, title, start_year, end_year, step, mode, mode_smooth,
-                   lsm_name, depth=None):
+def create_dataset(discharge, time, longitude, latitude, title, start_year, end_year, step, mode=None, mode_smooth=None,
+                   lsm_name=None, depth=None):
     """
     Create an xarray dataset based on inputs. The waterfix or discharge formats are to be chose with the depth option.
     :param discharge: Meltwater mass flux discharge file [t * lat * lon] numpy array.
@@ -79,9 +79,12 @@ def create_dataset(discharge, time, longitude, latitude, title, start_year, end_
         ds.attrs['start_year'] = start_year
         ds.attrs['end_year'] = end_year
         ds.attrs['step'] = step
-        ds.attrs['mode'] = mode
-        ds.attrs['mode_smooth'] = mode_smooth
-        ds.attrs['lsm'] = lsm_name
+        if mode is not None:
+            ds.attrs['mode'] = mode
+        if mode_smooth is not None:
+            ds.attrs['mode_smooth'] = mode_smooth
+        if lsm_name is not None:
+            ds.attrs['lsm'] = lsm_name
     ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
     
     return ds
