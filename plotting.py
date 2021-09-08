@@ -90,11 +90,13 @@ def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit, running_mean=No
     values = convert_discharge_values(ds_discharge, ds_waterfix, unit)
     
     flux_na = [0] * n_t
-    flux_ns = [0] * n_t
+    flux_egi = [0] * n_t
+    flux_gin = [0] * n_t
     flux_med = [0] * n_t
     flux_arc = [0] * n_t
     flux_ss = [0] * n_t
     flux_pac = [0] * n_t
+    
     
     collection_boxes = spreading.generate_collection_boxes()
     spread_regions = spreading.generate_spreading_regions(collection_boxes, umgrid, masked, masked_500m)
@@ -105,11 +107,15 @@ def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit, running_mean=No
         if spread_region['name'] in ['US_East_Coast', 'Gulf_of_Mexico', 'LabradorSea_BaffinBay']:
             spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
             flux_na += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
-        # Nordic seas
+        # East Greenland & Iceland
         elif spread_region['name'] in ['Atlantic_GreenlandIceland', 'EastGreenland_Iceland', 'EastIceland',
-                                       'UK_Atlantic', 'Eurasian_GINSeas', 'South_Iceland']:
+                                       'South_Iceland']:
             spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
-            flux_ns += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+            flux_egi += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
+        # GIN Seas
+        elif spread_region['name'] in ['UK_Atlantic', 'Eurasian_GINSeas']:
+            spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
+            flux_gin += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
         # Mediterranean Sea
         elif spread_region['name'] in ['Mediterranean']:
             spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
@@ -120,30 +126,33 @@ def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit, running_mean=No
             flux_arc += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
         # Southern seas
         elif spread_region['name'] in ['Antarctica_RossSea', 'Antarctica_AmundsenSea', 'Antarctica_WeddellSea',
-                                       'Antarctica_RiiserLarsonSea', 'Antarctica_DavisSea', 'Patagonia_Atlantic']:
+                                       'Antarctica_RiiserLarsonSea', 'Antarctica_DavisSea', 'Patagonia_Atlantic',
+                                       'NorthNewZealand_Pacific', 'SouthNewZealand_Pacific']:
             spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
             flux_ss += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
         # Pacific
-        elif spread_region['name'] in ['Patagonia_Pacific', 'Russia_Pacific', 'East_Pacific', 'NorthNewZealand_Pacific',
-                                       'SouthNewZealand_Pacific']:
+        elif spread_region['name'] in ['Patagonia_Pacific', 'Russia_Pacific', 'East_Pacific']:
             spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
             flux_pac += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
 
-    flux_tot = flux_na + flux_ns + flux_med + flux_arc + flux_ss + flux_pac
+    flux_tot = flux_na + flux_egi + flux_gin + flux_med + flux_arc + flux_ss + flux_pac
     print(f"____ Computation time step : {t}. Total flux : {flux_tot[t]}" for t in range(n_t))
+
+    #Residuals
 
     # Apply running means
     if running_mean:
         flux_tot = tb.running_mean(flux_tot, running_mean)
         flux_na = tb.running_mean(flux_na, running_mean)
-        flux_ns = tb.running_mean(flux_ns, running_mean)
+        flux_egi = tb.running_mean(flux_egi, running_mean)
+        flux_gin = tb.running_mean(flux_gin, running_mean)
         flux_med = tb.running_mean(flux_med, running_mean)
         flux_arc = tb.running_mean(flux_arc, running_mean)
         flux_ss = tb.running_mean(flux_ss, running_mean)
         flux_pac = tb.running_mean(flux_pac, running_mean)
 
-    return {'North_Atlantic': flux_na, 'Nordic seas': flux_ns, 'Mediterranean': flux_med, 'Arctic': flux_arc,
-            'Southern seas': flux_ss, 'Pacific': flux_pac, 'Total': flux_tot}
+    return {'North Atlantic': flux_na, 'East Greenland & Iceland': flux_egi, 'GIN': flux_gin, 'Mediterranean': flux_med,
+            'Arctic': flux_arc, 'Southern seas': flux_ss, 'Pacific': flux_pac, 'Total': flux_tot}
 
 
 def plot_discharge_full_ts(path_discharge, ds_waterfix, unit="kg/m2/s", out="save"):
