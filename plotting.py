@@ -25,7 +25,7 @@ def plot_discharge_ts(path_discharge, path_lsm, ds_waterfix, unit="kg/m2/s", out
     ts = create_discharge_ts(ds, ds_lsm, ds_waterfix, unit)
     t = ds.t.values
     
-    flux_na = ts['North_Atlantic']
+    flux_na = ts['North America']
     flux_ns = ts['Nordic seas']
     flux_med = ts['Mediterranean']
     flux_arc = ts['Arctic']
@@ -35,7 +35,7 @@ def plot_discharge_ts(path_discharge, path_lsm, ds_waterfix, unit="kg/m2/s", out
     
     figMap, axMap = plt.subplots(nrows=1, ncols=1, figsize=(14, 7), dpi=200)
     
-    axMap.plot(t, tb.running_mean(flux_na, running_mean), label="North Atlantic", color="xkcd:sky blue", linestyle="-")
+    axMap.plot(t, tb.running_mean(flux_na, running_mean), label="North America", color="xkcd:sky blue", linestyle="-")
     axMap.plot(t, tb.running_mean(flux_ns, running_mean), label="Nordic seas", color="xkcd:salmon", linestyle="-")
     axMap.plot(t, tb.running_mean(flux_med, running_mean), label="Mediterranean sea", color="xkcd:olive", linestyle="-")
     axMap.plot(t, tb.running_mean(flux_arc, running_mean), label="Arctic", color="xkcd:jade", linestyle="-")
@@ -97,7 +97,6 @@ def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit, running_mean=No
     flux_ss = [0] * n_t
     flux_pac = [0] * n_t
     
-    
     collection_boxes = spreading.generate_collection_boxes()
     spread_regions = spreading.generate_spreading_regions(collection_boxes, umgrid, masked, masked_500m)
     
@@ -134,12 +133,10 @@ def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit, running_mean=No
         elif spread_region['name'] in ['Patagonia_Pacific', 'Russia_Pacific', 'East_Pacific']:
             spread_region_loc_3d = np.resize(spread_region['loc'].mask, (n_t, n_lat, n_lon))
             flux_pac += np.nansum(values * spread_region_loc_3d, axis=(1, 2))
-
+    
     flux_tot = flux_na + flux_egi + flux_gin + flux_med + flux_arc + flux_ss + flux_pac
     print(f"____ Computation time step : {t}. Total flux : {flux_tot[t]}" for t in range(n_t))
-
-    #Residuals
-
+    
     # Apply running means
     if running_mean:
         flux_tot = tb.running_mean(flux_tot, running_mean)
@@ -150,8 +147,8 @@ def create_discharge_ts(ds_discharge, ds_lsm, ds_waterfix, unit, running_mean=No
         flux_arc = tb.running_mean(flux_arc, running_mean)
         flux_ss = tb.running_mean(flux_ss, running_mean)
         flux_pac = tb.running_mean(flux_pac, running_mean)
-
-    return {'North Atlantic': flux_na, 'East Greenland & Iceland': flux_egi, 'GIN': flux_gin, 'Mediterranean': flux_med,
+    
+    return {'North America': flux_na, 'East Greenland & Iceland': flux_egi, 'GIN': flux_gin, 'Mediterranean': flux_med,
             'Arctic': flux_arc, 'Southern seas': flux_ss, 'Pacific': flux_pac, 'Total': flux_tot}
 
 
