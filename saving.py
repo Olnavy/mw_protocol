@@ -1,4 +1,4 @@
-import mw_protocol.glac1d_toolbox as tb
+import mw_protocol.toolbox as tb
 import xarray as xr
 import numpy as np
 import numpy.ma as ma

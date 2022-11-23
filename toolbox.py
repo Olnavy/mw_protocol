@@ -2,13 +2,12 @@ import numpy as np
 import numpy.ma as ma
 import xarray as xr
 import xesmf as xe
-
+import pandas as pd
 
 # ------------------------------------- #
 # ---------- GENERAL METHODS ---------- #
 # ------------------------------------- #
 
-# To move to a general toolbox file
 
 def create_coordinate_edges(coordinates):
     """
@@ -54,29 +53,38 @@ def coordinates_to_indexes(lon_target, lat_target, longitudes, latitudes):
     return np.argmin(abs(longitudes - lon_target)), np.argmin(abs(latitudes - lat_target))
 
 
-def running_mean(data, n):
+def rmean(data, n, axis=0):
     """
-    Running mean on n years for a 1D array. Only use the past values.
+    Running mean calculation along a single axis
+    :param data: time series.
+    :param n: Size of the moving window.
+    :param axis: Time axis.
+    :return:
+    """
+    try:
+        return pd.Series(data).rolling(window=n, min_periods=1, center=True, axis=axis).mean().values
+    except TypeError as error:
+        print(error)
+        print("Returning initial tab.")
+        return data
 
-    Parameters
-    ----------
-    data : list of numpy 1D array
-        data to process the running mean
-    n : int
-        number of years to perform the running mean
-    Returns
-    -------
-    list of numpy 1D array
-        new averaged data
+
+def scatter_mask(routed_mask, scalling=100):
     """
-    mean = np.convolve(data, np.ones(n), mode="full")
-    out_mean = np.zeros((len(data)))
-    for i in range(len(data)):
-        if i + 1 < n:
-            out_mean[i] = mean[i] / (i + 1)
-        else:
-            out_mean[i] = mean[i] / n
-    return out_mean
+    Return parameters for a scatter plot from a routed mask.
+    :param routed_mask: Maps of discharge points [lat*lon].
+    :return: (x indexes, y indexes, corresponding size).
+    """
+    x, y, s = [], [], []
+
+    for i in range(routed_mask.shape[0]):
+        for j in range(routed_mask.shape[1]):
+            if not np.isnan(routed_mask[i, j]) and routed_mask[i, j]:
+                x.append(j), y.append(i), s.append(routed_mask[i, j])
+
+    s = np.array(s) / np.max(s) * scalling
+
+    return x, y, s
 
 
 # ---------------------------------------- #
@@ -111,6 +119,7 @@ def hadcm3_regridding_method(ds_input, ds_hadcm3, reuse_weights=False):
                                'lon_b': (['x_b'], lon_glac1D_b),
                                'lat_b': (['y_b'], lat_glac1D_b),
                                })
+
     return xe.Regridder(ds_in, ds_out, 'conservative', reuse_weights=reuse_weights)
 
 

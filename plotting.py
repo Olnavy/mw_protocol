@@ -1,4 +1,4 @@
-import mw_protocol.glac1d_toolbox as tb
+import mw_protocol.toolbox as tb
 import mw_protocol.spreading as spreading
 import matplotlib.pyplot as plt
 import numpy as np
@@ -331,21 +331,3 @@ def convert_discharge_values(ds_discharge, ds_waterfix, unit):
     else:
         values = ds_discharge.discharge.values
     return values
-
-
-def scatter_mask(routed_mask):
-    """
-    Return parameters for a scatter plot from a routed mask.
-    :param routed_mask: Maps of discharge points [lat*lon].
-    :return: (x indexes, y indexes, corresponding size).
-    """
-    x, y, s = [], [], []
-    
-    for i in range(routed_mask.shape[0]):
-        for j in range(routed_mask.shape[1]):
-            if not np.isnan(routed_mask[i, j]) and routed_mask[i, j]:
-                x.append(j), y.append(i), s.append(routed_mask[i, j])
-    
-    s = np.array(s) / np.max(s) * 1000
-    
-    return x, y, s
