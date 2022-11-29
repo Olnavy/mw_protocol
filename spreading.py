@@ -1,5 +1,8 @@
 import mw_protocol.toolbox as tb
 import numpy as np
+import xarray as xr
+import datetime
+
 
 """
 DIRECTLY ADAPTED FROM produce_deglacHadCM3_spread.py by R F Ivanovic
@@ -11,19 +14,36 @@ DIRECTLY ADAPTED FROM produce_deglacHadCM3_spread.py by R F Ivanovic
 # --------------------------------- #
 
 
-def spreading(discharge_mw, ds_lsm, ds_wf):
+def spreading(ds_discharge, ds_lsm, ds_wf, discharge_unit='m3/s'):
     """
-    !!! The spreading is done on m3/s data !!!
-    From an initial discharge cube return a new cube with meltwater collected and spreaded over new regions adding the
+    From an initial discharge, return a new dataset with meltwater collected and spread over new regions and add the
     waterfix.
-    :param discharge_mw: Initial discharge cube [t*lat*lon].
+    :param ds_discharge: Input discharge dataset [t*lat*lon].
     :param ds_lsm: Land sea mask.
     :param ds_wf: Waterfix.
+    :param discharge_unit: Unit of the input discharge. default is m3/s.
     :return: Discharge cube with the waterfix [t*lat*lon].
     """
     
     print("__ Spreading algorithm")
     
+    def to_m3s(data, unit):
+
+        # Water density
+        d = 1000
+
+        if unit == 'm3/s':
+            return data
+        elif unit == 'kg/s':
+            return data * d
+        elif unit == 'Sv':
+            return data * 10 ** (6)
+        else:
+            raise ValueError("____ Mode not recognized")
+
+    # Discharge
+    discharge = to_m3s(ds_discharge.discharge.values, discharge_unit)   # convert discharge to m3/s
+
     # Land sea mask
     lon_lsm, lat_lsm, depth, lsm = \
         ds_lsm.longitude.values, ds_lsm.latitude.values, ds_lsm.depthdepth.values, ds_lsm.lsm.values
@@ -31,8 +51,8 @@ def spreading(discharge_mw, ds_lsm, ds_wf):
     # Waterfix
     lon_wf, lat_wf, wfix = ds_wf.longitude.values, ds_wf.latitude.values, ds_wf.field672.isel(depth=0).isel(t=0).values
     lon_wf, wfix = lon_wf[:-2], wfix[:, :-2]  # remove 2 extra lon points
-    # Converting the waterfix (kg/m2/s1) to discharge unit (m3/s)
-    wfix_3d = convert_waterfix(wfix, discharge_mw, tb.surface_matrix(lon_lsm, lat_lsm))
+    # Converting the waterfix (kg/m2/s1) to discharge unit (m3/s) and make it 3D
+    wfix_3d = convert_waterfix(wfix, discharge, tb.surface_matrix(lon_lsm, lat_lsm))
     
     # Test that the three files use the same coordinate system
     assert (np.array_equal(lat_wf, lat_lsm) and np.array_equal(lon_wf, lon_lsm))
@@ -40,7 +60,8 @@ def spreading(discharge_mw, ds_lsm, ds_wf):
     # Coordinate system
     lat, lon = LatAxis(lat_wf[:]), LonAxis(lon_wf[:])
     umgrid = Grid(lat, lon)
-    
+
+
     # Land sea mask and surface matrix
     masked = np.copy(lsm)  # land mask True (1) on land
     depthm = np.ma.masked_less(depth, 500.0)  # mask areas shallower than 500m
@@ -52,21 +73,26 @@ def spreading(discharge_mw, ds_lsm, ds_wf):
     spread_regions = generate_spreading_regions(collection_boxes, umgrid, masked, masked_500m)
     
     # Step 2 : Spread the collected freshwater in the spreading zones
-    spreaded_mw = spreading_method(discharge_mw, spread_regions, surface_matrix)
+    spread_mw = spreading_method(discharge, spread_regions, surface_matrix)
     
-    # Step 3 : Add waterfix to the spreaded mask
-    total_mw = spreaded_mw + wfix_3d
+    # Step 3 : Add waterfix to the spread mask
+    total_mw = spread_mw + wfix_3d
     
     # Step 4 : Calculate the loss and check the algorithm
-    discharge_others_mw = get_discharge_others(discharge_mw, spread_regions)
-    flux_check(discharge_mw, spreaded_mw, discharge_others_mw, wfix_3d, total_mw)
+    discharge_others_mw = get_discharge_others(discharge, spread_regions)
+    flux_check(discharge, spread_mw, discharge_others_mw, wfix_3d, total_mw)
     
-    return total_mw
+    # We copy the input dataset and replace the discharge flux.
+    ds = ds_discharge.copy()
 
+    ds['discharge'].values = total_mw
+    ds['discharge'].attrs['units'] = 'm3/s'
+    ds['discharge'].attrs['longname'] = 'SPREAD MELTWATER DISCHARGE'
+    
+    ds.attrs['title'] = "SPREAD MELTWATER DISCHARGE"
+    ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
 
-# --------------------------------- #
-# ---------- NEW METHODS ---------- #
-# --------------------------------- #
+    return ds
 
 def spreading_method(discharge_mw, spread_regions, surface_matrix):
     """
@@ -74,10 +100,10 @@ def spreading_method(discharge_mw, spread_regions, surface_matrix):
     :param discharge_mw: Initial discharge cube [t*lat*lon].
     :param spread_regions: List of spreading zones objects.
     :param surface_matrix: LSM surface matrix [lat*lon]
-    :return: Spreaded discharge cube [t*lat*lon].
+    :return: spread discharge cube [t*lat*lon].
     """
     nt, nlat, nlon = discharge_mw.shape
-    spreaded_mw = np.zeros((nt, nlat, nlon))
+    spread_mw = np.zeros((nt, nlat, nlon))
     
     for spread_region in spread_regions:
         print(f"____ Spreading in {spread_region}")
@@ -98,9 +124,32 @@ def spreading_method(discharge_mw, spread_regions, surface_matrix):
         spread_region_flux_spread_3d = np.where(spread_region_area_3d, spread_region_flux_3d, 0)
         
         # Add spread_region discharge to global field
-        spreaded_mw = spreaded_mw + spread_region_flux_spread_3d
+        spread_mw = spread_mw + spread_region_flux_spread_3d
     
-    return spreaded_mw
+    return spread_mw
+
+
+# ---------------------------------------- #
+# ---------- RESPREADING METHOD ---------- #
+# ---------------------------------------- #
+
+def respreading(discharge_mw, ds_lsm, ds_wf):
+
+    # Waterfix
+    lon_wf, lat_wf, wfix = ds_wf.longitude.values, ds_wf.latitude.values, ds_wf.field672.isel(depth=0).isel(t=0).values
+    lon_wf, wfix = lon_wf[:-2], wfix[:, :-2]  # remove 2 extra lon points
+    # Converting the waterfix (kg/m2/s1) to discharge unit (m3/s) and make it 3D
+    wfix_3d = convert_waterfix(wfix, discharge_mw, tb.surface_matrix(lon_lsm, lat_lsm))
+
+
+    # Step 1 : Generate collection and spreading zones
+    collection_boxes = generate_collection_boxes()
+    spread_regions = generate_spreading_regions(collection_boxes, umgrid, masked, masked_500m)
+
+
+# ----------------------------------------- #
+# ---------- ADDITIONNAL METHODS ---------- #
+# ----------------------------------------- #
 
 
 def convert_waterfix(wfix, discharge_mw, surface_matrix):
@@ -142,11 +191,11 @@ def get_discharge_others(discharge_mw, spread_regions):
     return discharge_others
 
 
-def flux_check(discharge_mw, spreaded_mw, discharge_others_mw, wfix, total_mw):
+def flux_check(discharge_mw, spread_mw, discharge_others_mw, wfix, total_mw):
     """
     Quick display of flux check.
     :param discharge_mw: Initial discharge cube [t*lat*lon].
-    :param spreaded_mw: Sreaded discharge cube [t*lat*lon].
+    :param spread_mw: Sreaded discharge cube [t*lat*lon].
     :param discharge_others_mw: Leftovers discharge cube [t*lat*lon].
     :param wfix: Waterfix.
     :param total_mw: Initial discharge cube [t*lat*lon].
@@ -157,7 +206,7 @@ def flux_check(discharge_mw, spreaded_mw, discharge_others_mw, wfix, total_mw):
     nt = discharge_mw.shape[0]
     
     discharge_flux = np.sum(discharge_mw) / float(nt)
-    spreaded_flux = np.sum(spreaded_mw) / float(nt)
+    spread_flux = np.sum(spread_mw) / float(nt)
     discharge_others_flux = np.sum(discharge_others_mw) / float(nt)
     wfix_flux = np.sum(wfix) / float(nt)
     total_flux = np.sum(total_mw) / float(nt)
@@ -175,7 +224,7 @@ def flux_check(discharge_mw, spreaded_mw, discharge_others_mw, wfix, total_mw):
     print("If all is correct then:\n    [1] = [2] + [3] \n    [6] = [3] + [4] + [5] \n    [6] = [7]")
     
     print('[1] discharge_flux (m3/s): ', discharge_flux)
-    print('[2] spreaded_flux (m3/s): ', spreaded_flux)
+    print('[2] spread_flux (m3/s): ', spread_flux)
     print('[3] discharge_others_flux (m3/s): ', discharge_others_flux)
     print('[4] wfix_flux(m3/s): ', wfix_flux)
     
@@ -183,169 +232,18 @@ def flux_check(discharge_mw, spreaded_mw, discharge_others_mw, wfix, total_mw):
     print('[6] total_flux (m3/s): ', total_flux, "\n")
     
     print('[1] = [2] + [3]:',
-          abs((discharge_flux - (spreaded_flux + discharge_others_flux)) <= (total_flux_init * 10 ** (-3))))
+          abs((discharge_flux - (spread_flux + discharge_others_flux)) <= (total_flux_init * 10 ** (-3))))
     
     print('[6] = [2] + [4]:',
-          abs((total_flux - (spreaded_flux + wfix_flux)) <= (total_flux_init * 10 ** (-3))))
+          abs((total_flux - (spread_flux + wfix_flux)) <= (total_flux_init * 10 ** (-3))))
     
     print('[5] = [6] + [3]:',
           abs((total_flux_init - (total_flux + discharge_others_flux)) <= (total_flux_init * 10 ** (-3))))
-    
-    # ------------------------------ #
-    # ---------- GEOMETRY ---------- #
-    # ------------------------------ #
 
 
-def correction_waterfix(correction, wfix, surface_matrix):
-    """
-    Adding a correction patch (constant value) to the waterfix. DEPRECATED.
-    :param correction: Correction patch.
-    :param wfix: Waterfix.
-    :param surface_matrix: LSM Surface matrix.
-    :return:
-    """
-    d = 1000  # water density
-    return np.where(np.isnan(wfix + correction), 0, wfix + correction) / d * surface_matrix
-
-
-# --------------------------------- #
-# ---------- OLD METHODS ---------- #
-# --------------------------------- #
-
-
-class Box:
-    
-    def __init__(self, latmin, latmax, lonmin, lonmax):
-        self.latmin = latmin
-        self.latmax = latmax
-        if lonmin < 0:
-            lonmin += 360.0
-        if lonmax < 0:
-            lonmax += 360.0
-        self.lonmin = lonmin
-        self.lonmax = lonmax
-        self.cells_in = None
-        self.ocean_in = None
-        self.nc = None
-        self.no = None
-        # self.get_mask(grid,mask)
-    
-    def get_mask(self, grid, mask):
-        """Count ocean grid boxes within the area"""
-        # define grid arrays
-        lons = grid.lon_center[:]
-        lats = grid.lat_center[:]
-        ocean_boxes = np.logical_not(mask)
-        #
-        lats_in = np.logical_and(lats < self.latmax, lats > self.latmin)
-        lons_in = np.logical_and(lons < self.lonmax, lons > self.lonmin)
-        self.cells_in = np.logical_and(lats_in, lons_in)
-        self.ocean_in = np.logical_and(self.cells_in, ocean_boxes)
-        self.nc = np.sum(self.cells_in)
-        self.no = np.sum(self.ocean_in)
-    
-    def __repr__(self):
-        return str(self.no) + ' ocean cells in the box'
-
-    def cycle_box(self):
-        return [[self.lonmin, self.lonmin, self.lonmax, self.lonmax, self.lonmin],
-                [self.latmin, self.latmax, self.latmax, self.latmin, self.latmin]]
-
-
-class Region:
-    
-    def __init__(self, boxes, grid, mask):
-        self.boxes = boxes[:]
-        self.grid = grid
-        self.grid_mask = np.copy(mask)
-        self.mask = None
-        self.no = None
-        self.totalarea = None
-        
-        self.get_mask()
-        self.calc_area()
-    
-    def get_mask(self):
-        """Count ocean grid boxes within the region"""
-        # define grid arrays
-        ocean_boxes = np.logical_not(self.grid_mask)
-        #
-        ocean_in = np.zeros(ocean_boxes.shape)  # start with no box
-        for box in self.boxes:
-            # add cells from each box
-            box.get_mask(self.grid, self.grid_mask)
-            ocean_in = np.logical_or(ocean_in, box.ocean_in)
-        self.mask = np.copy(ocean_in)
-        self.no = np.sum(self.mask)
-    
-    def calc_area(self):
-        """ calculate surface of the region"""
-        self.totalarea = np.ma.array(self.grid.area(), mask=np.logical_not(self.mask[:])).sum()
-    
-    def calc_total_flux(self):
-        pass
-    
-    def __repr__(self):
-        return str(self.no) + ' ocean cells in the region'
-
-
-class Grid:
-    
-    def __init__(self, lat, lon):
-        self.lon_center, self.lat_center = np.meshgrid(lon.center, lat.center)
-        self.lon_lower, self.lat_lower = np.meshgrid(lon.lower, lat.lower)
-        self.lon_upper, self.lat_upper = np.meshgrid(lon.upper, lat.upper)
-    
-    def area(self):
-        """
-        Area of grid cell is
-        S(i,j) = R * R *(crad * (lon.upper[i] -  lon.lower[i])) *
-                (sin(lat.upper[j]) - sin(lat.lower[j]))
-        """
-        r = 6371000.0  # radius of Earth (m)
-        crad = np.pi / 180.0
-        area = r * r * (crad * (self.lon_upper - self.lon_lower)) * \
-               (np.sin(crad * self.lat_upper) - np.sin(crad * self.lat_lower))
-        area_globe = np.sum(area)
-        area_globe_true = 4 * np.pi * r * r
-        assert abs(area_globe - area_globe_true) <= area_globe_true * 1e-6
-        # print "calculated numerical area is",area_globe,',',100*area_globe/area_globe_true,'% arithmetical value'
-        area = np.copy(area)
-        return area
-
-
-class LonAxis:
-    """Define longitude axis boundaries
-    and deal with wrapping around"""
-    
-    def __init__(self, lon):
-        lon_p = np.roll(lon, -1)  # shifted longitude
-        lon_p[-1] += 360
-        lon_m = np.roll(lon, 1)
-        lon_m[0] -= 360
-        lon_lower = lon - (lon - lon_m) / 2.0
-        lon_upper = lon + (lon_p - lon) / 2.0
-        #
-        self.center = lon[:]
-        self.lower = lon_lower[:]
-        self.upper = lon_upper[:]
-
-
-class LatAxis:
-    """Define latitude axis boundaries
-    and overwrite pole boundaries"""
-    
-    def __init__(self, lat):
-        lat_p = np.roll(lat, -1)  # shifted
-        lat_m = np.roll(lat, 1)
-        lat_lower = lat - (lat - lat_m) / 2.0
-        lat_upper = lat + (lat_p - lat) / 2.0
-        #
-        self.center = lat[:]
-        self.lower = lat_lower[:]
-        self.upper = lat_upper[:]
-        self.lower[0] = -90
-        self.upper[-1] = 90
+# ------------------------------------------------------------ #
+# ---------- COLLECTION BOXES AND SPREADING REGIONS ---------- #
+# ------------------------------------------------------------ #
 
 
 def generate_collection_boxes():
@@ -533,3 +431,160 @@ def generate_spreading_regions(cb, um_grid, masked, masked_500m):
     return [us_ecoast, gr_arc, n_am_arc, g_o_m, e_pac, russ_pac, baf_lab, atl_gr, e_gr_ice, e_ice, uk_atl, eur_gin,
             s_iceland, eur_arc, sib_arc, med, pat_atl, pat_pac, nnz_pac, snz_pac, aa_ros, aa_amund, aa_weddell,
             aa_rii_lar, aa_davis]
+
+
+# ----------------------------- #
+# ---------- CLASSES ---------- #
+# ----------------------------- #
+
+
+class Box:
+    
+    def __init__(self, latmin, latmax, lonmin, lonmax):
+        self.latmin = latmin
+        self.latmax = latmax
+        if lonmin < 0:
+            lonmin += 360.0
+        if lonmax < 0:
+            lonmax += 360.0
+        self.lonmin = lonmin
+        self.lonmax = lonmax
+        self.cells_in = None
+        self.ocean_in = None
+        self.nc = None
+        self.no = None
+        # self.get_mask(grid,mask)
+    
+    def get_mask(self, grid, mask):
+        """Count ocean grid boxes within the area"""
+        # define grid arrays
+        lons = grid.lon_center[:]
+        lats = grid.lat_center[:]
+        ocean_boxes = np.logical_not(mask)
+        #
+        lats_in = np.logical_and(lats < self.latmax, lats > self.latmin)
+        lons_in = np.logical_and(lons < self.lonmax, lons > self.lonmin)
+        self.cells_in = np.logical_and(lats_in, lons_in)
+        self.ocean_in = np.logical_and(self.cells_in, ocean_boxes)
+        self.nc = np.sum(self.cells_in)
+        self.no = np.sum(self.ocean_in)
+    
+    def __repr__(self):
+        return str(self.no) + ' ocean cells in the box'
+
+    def cycle_box(self):
+        return [[self.lonmin, self.lonmin, self.lonmax, self.lonmax, self.lonmin],
+                [self.latmin, self.latmax, self.latmax, self.latmin, self.latmin]]
+
+
+class Region:
+    
+    def __init__(self, boxes, grid, mask):
+        self.boxes = boxes[:]
+        self.grid = grid
+        self.grid_mask = np.copy(mask)
+        self.mask = None
+        self.no = None
+        self.totalarea = None
+        
+        self.get_mask()
+        self.calc_area()
+    
+    def get_mask(self):
+        """Count ocean grid boxes within the region"""
+        # define grid arrays
+        ocean_boxes = np.logical_not(self.grid_mask)
+        #
+        ocean_in = np.zeros(ocean_boxes.shape)  # start with no box
+        for box in self.boxes:
+            # add cells from each box
+            box.get_mask(self.grid, self.grid_mask)
+            ocean_in = np.logical_or(ocean_in, box.ocean_in)
+        self.mask = np.copy(ocean_in)
+        self.no = np.sum(self.mask)
+    
+    def calc_area(self):
+        """ calculate surface of the region"""
+        self.totalarea = np.ma.array(self.grid.area(), mask=np.logical_not(self.mask[:])).sum()
+    
+    def calc_total_flux(self):
+        pass
+    
+    def __repr__(self):
+        return str(self.no) + ' ocean cells in the region'
+
+
+class Grid:
+    
+    def __init__(self, lat, lon):
+        self.lon_center, self.lat_center = np.meshgrid(lon.center, lat.center)
+        self.lon_lower, self.lat_lower = np.meshgrid(lon.lower, lat.lower)
+        self.lon_upper, self.lat_upper = np.meshgrid(lon.upper, lat.upper)
+    
+    def area(self):
+        """
+        Area of grid cell is
+        S(i,j) = R * R *(crad * (lon.upper[i] -  lon.lower[i])) *
+                (sin(lat.upper[j]) - sin(lat.lower[j]))
+        """
+        r = 6371000.0  # radius of Earth (m)
+        crad = np.pi / 180.0
+        area = r * r * (crad * (self.lon_upper - self.lon_lower)) * \
+               (np.sin(crad * self.lat_upper) - np.sin(crad * self.lat_lower))
+        area_globe = np.sum(area)
+        area_globe_true = 4 * np.pi * r * r
+        assert abs(area_globe - area_globe_true) <= area_globe_true * 1e-6
+        # print "calculated numerical area is",area_globe,',',100*area_globe/area_globe_true,'% arithmetical value'
+        area = np.copy(area)
+        return area
+
+
+class LonAxis:
+    """Define longitude axis boundaries
+    and deal with wrapping around"""
+    
+    def __init__(self, lon):
+        lon_p = np.roll(lon, -1)  # shifted longitude
+        lon_p[-1] += 360
+        lon_m = np.roll(lon, 1)
+        lon_m[0] -= 360
+        lon_lower = lon - (lon - lon_m) / 2.0
+        lon_upper = lon + (lon_p - lon) / 2.0
+        #
+        self.center = lon[:]
+        self.lower = lon_lower[:]
+        self.upper = lon_upper[:]
+
+
+class LatAxis:
+    """Define latitude axis boundaries
+    and overwrite pole boundaries"""
+    
+    def __init__(self, lat):
+        lat_p = np.roll(lat, -1)  # shifted
+        lat_m = np.roll(lat, 1)
+        lat_lower = lat - (lat - lat_m) / 2.0
+        lat_upper = lat + (lat_p - lat) / 2.0
+        #
+        self.center = lat[:]
+        self.lower = lat_lower[:]
+        self.upper = lat_upper[:]
+        self.lower[0] = -90
+        self.upper[-1] = 90
+
+
+# -------------------------------- #
+# ---------- DEPRECATED ---------- #
+# -------------------------------- #
+
+
+def correction_waterfix(correction, wfix, surface_matrix):
+    """
+    Adding a correction patch (constant value) to the waterfix. DEPRECATED.
+    :param correction: Correction patch.
+    :param wfix: Waterfix.
+    :param surface_matrix: LSM Surface matrix.
+    :return:
+    """
+    d = 1000  # water density
+    return np.where(np.isnan(wfix + correction), 0, wfix + correction) / d * surface_matrix

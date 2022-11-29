@@ -86,6 +86,12 @@ def scatter_mask(routed_mask, scalling=100):
 
     return x, y, s
 
+def ntn(array):
+    """
+    null to nan
+    """
+    return np.where(array == 0, np.nan, array)
+
 
 # ---------------------------------------- #
 # ---------- REGRIDDING METHODS ---------- #

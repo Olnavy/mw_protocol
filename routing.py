@@ -1,6 +1,8 @@
 import mw_protocol.toolbox as tb
 import numpy as np
 import pandas as pd
+import xarray as xr
+import datetime
 
 
 # --------------------------------- #
@@ -67,7 +69,44 @@ def routing(ds_hice, ds_pointer, ds_lsm, flux_unit="m3/S", mode_lon="double",
         # Suppressing negative values
         routed_flux_serie[t] = np.where(smoothed_mask < 0, 0, smoothed_mask)
 
-    return routed_flux_serie
+
+    # At last, we create the xarray dataset:
+
+    t = (ds_hice.T122KP1[:tmax]*1000).round(0).astype(int).values
+
+    ds = xr.Dataset({'discharge': (('t', 'latitude', 'longitude'), routed_flux_serie)},
+           coords={'t': t, 'latitude': ds_lsm.latitude.values, 'longitude':  ds_lsm.longitude.values})
+
+    ds['discharge'].attrs['units'] = flux_unit
+    ds['discharge'].attrs['longname'] = 'ROUTED MELTWATER DISCHARGE'
+
+    ds['t'].attrs['long_name'] = 'time'
+    ds['t'].attrs['units'] = 'years since 0000-01-01 00:00:00'
+    ds['t'].attrs['calendar'] = '360_days'
+
+    ds['longitude'].attrs['long_name'] = 'longitude'
+    ds['longitude'].attrs['actual_range'] = '0., 359.'
+    ds['longitude'].attrs['axis'] = 'X'
+    ds['longitude'].attrs['units'] = 'degrees_east'
+    ds['longitude'].attrs['modulo'] = '360'
+    ds['longitude'].attrs['topology'] = 'circular'
+    
+    ds['latitude'].attrs['long_name'] = 'latitude'
+    ds['latitude'].attrs['actual_range'] = '-89.5, 89.5'
+    ds['latitude'].attrs['axis'] = 'y'
+    ds['latitude'].attrs['units'] = 'degrees_north'
+
+    ds.attrs['title'] = "ROUTED MELTWATER DISCHARGE"
+    ds.attrs['start_year'] = np.min(t)
+    ds.attrs['end_year'] = np.max(t)
+    ds.attrs['step'] = t[1]-t[0]
+    ds.attrs['mode_lon'] = mode_lon
+    ds.attrs['mode_shape'] = mode_shape
+    ds.attrs['running_mean_period'] = n_smooth
+    ds.attrs['ice_sheet'] = 'GLAC-1D'
+    ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
+
+    return ds
 
 
 # ---------------------------------------- #
@@ -99,26 +138,27 @@ def hi_to_discharge(ds_hice, t, flux_unit):
         elif unit == 'm3/s':
             return data / delta
         else:
-            print("____Mode not recognized")
+            raise ValueError("____ Mode not recognized")
             return data / delta
 
+    # We take the difference between two consecutive time steps and divide it by the step. Years are in ky in ds_hice. 
     if t != len(ds_hice.HGLOBH.T122KP1) - 1:
         delta_t = (ds_hice.T122KP1[t + 1].values - ds_hice.T122KP1[t].values) * 365 * 24 * 3600 * 1000  # to seconds
         flux = conversion(ds_hice.HGLOBH[t + 1].values - ds_hice.HGLOBH[t].values, flux_unit, delta_t)
-    else:
+    else:  # the last two time steps are identical.
         delta_t = (ds_hice.T122KP1[t].values - ds_hice.T122KP1[t - 1].values) * 365 * 24 * 3600 * 1000  # to seconds
         flux = conversion(ds_hice.HGLOBH[t].values - ds_hice.HGLOBH[t - 1].values, flux_unit, delta_t)
 
     # Multiplying by the surface
     flux = np.multiply(flux, tb.surface_matrix(ds_hice.XLONGLOBP5.values, ds_hice.YLATGLOBP25.values))
 
-    # Remove the negative values
+    # Filter the negative values
     flux = np.where(flux < 0, 0, flux)
 
     return flux
 
 
-def drainage_method(initial_mask, ix, jy):
+def drainage_method(converted_discharge, ix, jy):
     """
     Create the drainage mask from an initial metlwater mask and two indexes routing maps.
     :param initial_mask: Meltwater flux array [lat*lon]
@@ -132,12 +172,12 @@ def drainage_method(initial_mask, ix, jy):
     ix_lon = ix * 0.5 - 180.25 + 360
     jy_lat = 90.125 - jy * 0.25
 
-    drained_mask = np.zeros(initial_mask.shape)
-    for i in range(initial_mask.shape[0]):
-        for j in range(initial_mask.shape[1]):
-            if not np.isnan(initial_mask[j, i]):
+    drained_mask = np.zeros(converted_discharge.shape)
+    for i in range(converted_discharge.shape[0]):
+        for j in range(converted_discharge.shape[1]):
+            if not np.isnan(converted_discharge[j, i]):
                 i_glac1d, j_glac1d = int(2 * (ix_lon[j, i] - 180.25)), int(4 * (jy_lat[j, i] + 89.875))
-                drained_mask[j_glac1d, i_glac1d] += initial_mask[j, i]
+                drained_mask[j_glac1d, i_glac1d] += converted_discharge[j, i]
 
     return drained_mask
 
