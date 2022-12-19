@@ -69,28 +69,24 @@ def rmean(data, n, axis=0):
         return data
 
 
-def scatter_mask(routed_mask, scalling=100):
-    """
-    Return parameters for a scatter plot from a routed mask.
-    :param routed_mask: Maps of discharge points [lat*lon].
-    :return: (x indexes, y indexes, corresponding size).
-    """
-    x, y, s = [], [], []
-
-    for i in range(routed_mask.shape[0]):
-        for j in range(routed_mask.shape[1]):
-            if not np.isnan(routed_mask[i, j]) and routed_mask[i, j]:
-                x.append(j), y.append(i), s.append(routed_mask[i, j])
-
-    s = np.array(s) / np.max(s) * scalling
-
-    return x, y, s
-
 def ntn(array):
     """
     null to nan
     """
     return np.where(array == 0, np.nan, array)
+
+def masking(array, lsm=None):
+    """
+    Mask an array using a land sea mask.
+    :param array: [t*lat*lon] numpy array.
+    :param lsm: [lat*lon] numpy array.
+    :return: Masked discharge array [t*lat*lon]
+    """
+    if lsm is not None:
+        lsm_3d = np.resize(lsm, array.shape)
+        return ma.array(array, mask=lsm_3d)
+    return ma.array(np.where(array==0,np.nan, array))
+
 
 
 # ---------------------------------------- #

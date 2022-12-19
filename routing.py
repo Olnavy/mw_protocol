@@ -11,7 +11,8 @@ import datetime
 
 
 def routing(ds_hice, ds_pointer, ds_lsm, flux_unit="m3/S", mode_lon="double",
-            mode_shape="cross", n_smooth=0, reuse_weights=True, t_debug=None):
+            mode_shape="cross", n_smooth=0, reuse_weights=True, t_debug=None,
+            ice_sheet='GLAC-1D'):
     """
     Derive a meltwater flux from an ice sheet reconstruction and a routing map.
     The flux is calculated, converted, routed, regridded and smoothed depending on the options.
@@ -103,8 +104,10 @@ def routing(ds_hice, ds_pointer, ds_lsm, flux_unit="m3/S", mode_lon="double",
     ds.attrs['mode_lon'] = mode_lon
     ds.attrs['mode_shape'] = mode_shape
     ds.attrs['running_mean_period'] = n_smooth
-    ds.attrs['ice_sheet'] = 'GLAC-1D'
-    ds.attrs['history'] = f"Created {datetime.datetime.now()} by Yvan Romé"
+    ds.attrs['ice_sheet'] = ice_sheet
+    ds.attrs['waterfix'] = None
+    ds.attrs['lsm'] = None
+    ds.attrs['history'] = "Created on " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S") + " by Yvan Malo Romé"
 
     return ds
 
