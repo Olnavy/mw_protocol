@@ -1,0 +1,248 @@
+{
+    "collection_boxes": {
+        "USECoast1": {
+            "coords": [-70, -52, 37, 46],
+            "region": "USA East Coast"
+        },
+        "USECoast2": {
+            "coords": [-70, -65, 32, 37],
+            "region": "USA East Coast"
+        },
+        "USECoast3": {
+            "coords": [-66, -58, 46, 50],
+            "region": "USA East Coast"
+        },
+        "USECoast4": {
+            "coords": [-52, -48, 40, 46],
+            "region": "USA East Coast"
+        },
+        "USECoast5": {
+            "coords": [-66, -58, 46, 50],
+            "region": "USA East Coast"
+        },
+        "USECoast6": {
+            "coords": [-48, -46, 40, 46],
+            "region": "USA East Coast"
+        },
+        "GrArc1": {
+            "coords": [279.5, 346, 81, 88],
+            "region": "Greenland Arctic"
+        },
+        "NAMArc1": {
+            "coords": [271, 279.5, 78, 86],
+            "region": "North American Arctic"
+        },
+        "NAMArc2": {
+            "coords": [246, 271, 68.75, 86],
+            "region": "North American Arctic"
+        },
+        "NAMArc3": {
+            "coords": [233, 246, 60, 82],
+            "region": "North American Arctic"
+        },
+        "NAMArc4": {
+            "coords": [191, 233, 60, 80],
+            "region": "North American Arctic"
+        },
+        "NAMArc5": {
+            "coords": [250, 264.375, 55, 68.75],
+            "region": "North American Arctic"
+        },
+        "NWTerr1": {
+            "coords": [235, 246, 55, 60],
+            "region": "North American Arctic"
+        },
+        "NWTerr2": {
+            "coords": [246, 250, 55, 66],
+            "region": "North American Arctic"
+        },
+        "GrLakes1": {
+            "coords": [-90, -72, 43, 48.75],
+            "region": "Great Lakes"
+        },
+        "GoM1": {
+            "coords": [-96.3, -80, 17.7, 28.75],
+            "region": "Gulf of Mexico"
+        },
+        "EPac1": {
+            "coords": [191, 215.5, 50, 60],
+            "region": "East Pacific"
+        },
+        "EPac2": {
+            "coords": [215.5, 225.5, 50, 60],
+            "region": "East Pacific"
+        },
+        "EPac3": {
+            "coords": [225.5, 234.5, 38.5, 60],
+            "region": "East Pacific"
+        },
+        "EPac4": {
+            "coords": [230, 260, 33.75, 38.5],
+            "region": "East Pacific"
+        },
+        "EPac5": {
+            "coords": [234.5, 260, 28.5, 33.75],
+            "region": "East Pacific"
+        },
+        "RussPac1": {
+            "coords": [178, 191, 58, 68],
+            "region": "Russia Pacific"
+        },
+        "BafLab1": {
+            "coords": [275, 317, 68.75, 80],
+            "region": "Labrador Sea & Baffin Bay"
+        },
+        "BafLab2": {
+            "coords": [294.25, 317, 50, 68.75],
+            "region": "Labrador Sea & Baffin Bay"
+        },
+        "BafLab3": {
+            "coords": [305.75, 317, 46, 50],
+            "region": "Labrador Sea & Baffin Bay"
+        },
+        "HudBay1": {
+            "coords": [264.375, 294.375, 48.75, 68.75],
+            "region": "Labrador Sea & Baffin Bay"
+        },
+        "HudBay2": {
+            "coords": [260, 264.375, 51, 54],
+            "region": "Labrador Sea & Baffin Bay"
+        },
+        "AtlGr1": {
+            "coords": [317, 337.25, 58, 71.25],
+            "region": "Atlantic Greenland Iceland"
+        },
+        "AtlGr2": {
+            "coords": [337.25, 339.5, 62.5, 63.75],
+            "region": "Atlantic Greenland Iceland"
+        },
+        "EGrIce1": {
+            "coords": [337.25, 346, 63.75, 81],
+            "region": "E Greenland & Iceland"
+        },
+        "EGrIce2": {
+            "coords": [346, 357, 68.75, 83],
+            "region": "E Greenland & Iceland"
+        },
+        "EIceland1": {
+            "coords": [346, 351, 63.75, 68.75],
+            "region": "E Iceland"
+        },
+        "UKAtl1": {
+            "coords": [346.75, 360, 46, 62.5],
+            "region": "UK Atlantic"
+        },
+        "EurGIN1": {
+            "coords": [3, 9.5, 68, 80],
+            "region": "Eurasian GIN Seas"
+        },
+        "EurGIN2": {
+            "coords": [9.5, 24.375, 68, 78],
+            "region": "Eurasian GIN Seas"
+        },
+        "EurGIN3": {
+            "coords": [0, 16, 60, 68],
+            "region": "Eurasian GIN Seas"
+        },
+        "EurGIN4": {
+            "coords": [0, 13, 50, 60],
+            "region": "Eurasian GIN Seas"
+        },
+        "EurGIN5": {
+            "coords": [16, 24.375, 66.25, 68],
+            "region": "Eurasian GIN Seas"
+        },
+        "EurGIN6": {
+            "coords": [0, 3, 68, 80],
+            "region": "Eurasian GIN Seas"
+        },
+        "Baltic1": {
+            "coords": [13, 30, 50, 60],
+            "region": "Eurasian GIN Seas"
+        },
+        "Baltic2": {
+            "coords": [16, 38, 60, 66.25],
+            "region": "Eurasian GIN Seas"
+        },
+        "SIceland1": {
+            "coords": [339.5, 346.75, 60, 63.75],
+            "region": "South Iceland"
+        },
+        "SibArc1": {
+            "coords": [173, 191, 68, 82],
+            "region": "Siberian Arctic"
+        },
+        "SibArc2": {
+            "coords": [114.5, 173, 68, 82],
+            "region": "Siberian Arctic"
+        },
+        "EurArc1": {
+            "coords": [9.5, 114.5, 78, 86],
+            "region": "Eurasian Arctic"
+        },
+        "EurArc2": {
+            "coords": [24.375, 114.5, 66.25, 78],
+            "region": "Eurasian Arctic"
+        },
+        "EurArc3": {
+            "coords": [0, 9, 80, 86],
+            "region": "Eurasian Arctic"
+        },
+        "Med1": {
+            "coords": [0, 41.5, 29, 40],
+            "region": "Mediterranean"
+        },
+        "Med2": {
+            "coords": [0, 24, 40, 45],
+            "region": "Mediterranean"
+        },
+        "BlckSea1": {
+            "coords": [26, 42, 40, 50],
+            "region": "Mediterranean"
+        },
+        "CaspSea1": {
+            "coords": [46, 55, 35, 50],
+            "region": "Mediterranean"
+        },
+        "PatAtl1": {
+            "coords": [290.5, 305, -56.25, -40],
+            "region": "Patagonia Atlantic"
+        },
+        "PatPac1": {
+            "coords": [282, 290.5, -56.25, -36],
+            "region": "Patagonia Pacific"
+        },
+        "PatPac2": {
+            "coords": [282, 294.5, -57.5, -56.25],
+            "region": "Patagonia Pacific"
+        },
+        "SNZPac1": {
+            "coords": [167, 176, -47.5, -43.75],
+            "region": "New Zealand (South)"
+        },
+        "NNZPac1": {
+            "coords": [165, 174.25, -43.75, -39],
+            "region": "New Zealand (North)"
+        },
+        "AARos1": {
+            "coords": [167, 239, -90, -68],
+            "region": "Antarctic Ross Sea"
+        },
+        "AAAmund": {
+            "coords": [239, 297, -90, -60],
+            "region": "Antarctic Amundsen Sea"
+        },
+        "AAWeddell": {
+            "coords": [297, 360, -90, -60],
+            "region": "Antarctic Weddell Sea"
+        },
+        "AARiiLar": {
+            "coords": [0, 59, -90, -60],
+            "region": "Antarctic Riiser-Larson Sea"
+        },
+        "AADavis": {
+            "coords": [59, 167, -90, -60],
+            "region": "Antarctic Davis Sea"
+        }
+    }
+}

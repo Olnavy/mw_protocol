@@ -1,0 +1,104 @@
+{
+    "spreading_regions": {
+        "US_East_Coast": {
+            "collection_boxes": ["USECoast1", "USECoast2", "USECoast3", "USECoast4", "USECoast5", "USECoast6", "GrLakes1"],
+            "spreading_boxes": ["USECoast1", "USECoast2", "USECoast3", "USECoast4", "USECoast4", "USECoast5"]
+        },
+        "Greenland_Arctic": {
+            "collection_boxes": ["GrArc1"],
+            "spreading_boxes": ["GrArc1"]
+        },
+        "N_American_Arctic": {
+            "collection_boxes": ["NAMArc1", "NAMArc2", "NAMArc3", "NAMArc4", "NAMArc5", "NWTerr1", "NWTerr2"],
+            "spreading_boxes": ["NAMArc1", "NAMArc2", "NAMArc3", "NAMArc4"]
+        },
+        "Gulf_of_Mexico": {
+            "collection_boxes": ["GoM1"],
+            "spreading_boxes": ["GoM1"]
+        },
+        "East_Pacific": {
+            "collection_boxes": ["EPac1", "EPac2", "EPac3", "EPac4", "EPac5"],
+            "spreading_boxes": ["EPac1", "EPac2", "EPac3", "EPac4", "EPac5"]
+        },
+        "Russia_Pacific": {
+            "collection_boxes": ["RussPac1"],
+            "spreading_boxes": ["RussPac1"]
+        },
+        "LabradorSea_BaffinBay": {
+            "collection_boxes": ["BafLab1", "BafLab2", "BafLab3", "HudBay1", "HudBay2"],
+            "spreading_boxes": ["BafLab1", "BafLab2", "BafLab3"]
+        },
+        "Atlantic_GreenlandIceland": {
+            "collection_boxes": ["AtlGr1", "AtlGr2"],
+            "spreading_boxes": ["AtlGr1", "AtlGr2"]
+        },
+        "EastGreenland_Iceland": {
+            "collection_boxes": ["EGrIce1", "EGrIce2"],
+            "spreading_boxes": ["EGrIce1", "EGrIce2"]
+        },
+        "EastIceland": {
+            "collection_boxes": ["EIceland1"],
+            "spreading_boxes": ["EIceland1"]
+        },
+        "UK_Atlantic": {
+            "collection_boxes": ["UKAtl1"],
+            "spreading_boxes": ["UKAtl1"]
+        },
+        "Eurasian_GINSeas": {
+            "collection_boxes": ["EurGIN1", "EurGIN2", "EurGIN3", "EurGIN4", "EurGIN5", "EurGIN6", "Baltic1", "Baltic2"],
+            "spreading_boxes": ["EurGIN1", "EurGIN2", "EurGIN3", "EurGIN4", "EurGIN5"]
+        },
+        "South_Iceland": {
+            "collection_boxes": ["SIceland1"],
+            "spreading_boxes": ["SIceland1"]
+        },
+        "Siberian_Arctic": {
+            "collection_boxes": ["SibArc1", "SibArc2"],
+            "spreading_boxes": ["SibArc1", "SibArc2"]
+        },
+        "Eurasian_Arctic": {
+            "collection_boxes": ["EurArc1", "EurArc2", "EurArc3"],
+            "spreading_boxes": ["EurArc1", "EurArc2"]
+        },
+        "Mediterranean": {
+            "collection_boxes": ["Med1", "Med2", "BlckSea1", "CaspSea1"],
+            "spreading_boxes": ["Med1", "Med2"]
+        },
+        "Patagonia_Atlantic": {
+            "collection_boxes": ["PatAtl1"],
+            "spreading_boxes": ["PatAtl1"]
+        },
+        "Patagonia_Pacific": {
+            "collection_boxes": ["PatPac1", "PatPac2"],
+            "spreading_boxes": ["PatPac1", "PatPac2"]
+        },
+        "NorthNewZealand_Pacific": {
+            "collection_boxes": ["NNZPac1"],
+            "spreading_boxes": ["NNZPac1"]
+        },
+        "SouthNewZealand_Pacific": {
+            "collection_boxes": ["SNZPac1"],
+            "spreading_boxes": ["SNZPac1"]
+        },
+        "Antarctica_RossSea": {
+            "collection_boxes": ["AARos1"],
+            "spreading_boxes": ["AARos1"]
+        },
+        "Antarctica_AmundsenSea": {
+            "collection_boxes": ["AAAmund"],
+            "spreading_boxes": ["AAAmund"]
+        },
+        "Antarctica_WeddellSea": {
+            "collection_boxes": ["AAWeddell"],
+            "spreading_boxes": ["AAWeddell"]
+        },
+        "Antarctica_RiiserLarsonSea": {
+            "collection_boxes": ["AARiiLar"],
+            "spreading_boxes": ["AARiiLar"]
+        },
+        "Antarctica_DavisSea": {
+            "collection_boxes": ["AADavis"],
+            "spreading_boxes": ["AADavis"]
+        }
+    }
+}
