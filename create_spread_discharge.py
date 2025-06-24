@@ -36,18 +36,12 @@ grid_ref = mw.Grid(
     ds_ref.nav_lat.values,
     ds_bathy)
 
-## Collection boxes - to put in mw_algorithm.py
-with open(f"{inputs_folder}/collection_boxes.json", 'r') as json_file:
-    boxes_data = json.load(json_file)['collection_boxes']
+## Collection boxes 
+collection_boxes = mw.get_collection_boxes(f"{inputs_folder}/collection_boxes.json", grid_ref)
 
-collection_boxes = {key: mw.CollectionBox(*boxes_data[key]['coords'],
-                                       boxes_data[key]['region'],
-                                       grid_ref) for key in boxes_data.keys()}
+## Spreading regions
+spreading_regions = mw.get_spreading_regions(f"{inputs_folder}/spreading_regions.json")
 
-## Spreading regions - to put in mw_algorithm.py
-
-with open(f"{inputs_folder}/spreading_regions.json", 'r') as json_file:
-    spreading_regions = json.load(json_file)['spreading_regions']
 
 
 "------"

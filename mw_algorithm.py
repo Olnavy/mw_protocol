@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 from shapely.geometry import Point, Polygon, box
 from shapely.vectorized import contains as shply_contains
+import json
 
 import mw_toolbox as tb
 
@@ -292,6 +293,23 @@ class CollectionBox:
 
         return mask
 
+def get_collection_boxes(input_file, grid):
+    """
+    Create collection boxes dictonary from an input file.
+    :param input_file: Path to the json input file containing collection box definitions.
+    :param grid: Grid object for the model.
+    :return: Dictionary of CollectionBox objects.
+    """
+        
+    with open(input_file, 'r') as json_file:
+        boxes_data = json.load(json_file)['collection_boxes']
+
+    collection_boxes = {key: CollectionBox(*boxes_data[key]['coords'],
+                                           boxes_data[key]['region'],
+                                           grid) for key in boxes_data.keys()}
+    
+    return collection_boxes
+
 
 def group_collection_box(collection_boxes):
     """
@@ -306,4 +324,14 @@ def group_collection_box(collection_boxes):
         grouped_boxes[box.region].append(box)
     return grouped_boxes
 
+def get_spreading_regions(input_file):
+    """
+    Create spreading regions dictionary from an input file.
+    :param input_file: Path to the json input file containing spreading region definitions.
+    :return: Dictionary of spreading regions.
+    """
+    
+    with open(input_file, 'r') as json_file:
+        spreading_data = json.load(json_file)['spreading_regions']
 
+    return spreading_data
