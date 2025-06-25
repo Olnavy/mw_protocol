@@ -1,6 +1,6 @@
 import numpy as np
 import xarray as xr
-from shapely.geometry import Point, Polygon, box
+from shapely.geometry import Point, Polygon, GeometryCollection
 from shapely.vectorized import contains as shply_contains
 import json
 
@@ -271,11 +271,16 @@ class CollectionBox:
 
     
     def get_box(self):
-        # return box(self.lonmin, self.latmin, self.lonmax, self.latmax)
-        return Polygon(
-            [(self.lonmin, self.latmin), (self.lonmax, self.latmin),
-             (self.lonmax, self.latmax), (self.lonmin, self.latmax)]
-        )
+        if self.lonmin < self.lonmax:
+            # Normal case: box does not cross the 1st meridian
+            return Polygon(
+                [(self.lonmin, self.latmin), (self.lonmax, self.latmin),
+                (self.lonmax, self.latmax), (self.lonmin, self.latmax)]
+            )
+        else:
+            p1 = Polygon([(self.lonmin, self.latmin), (360, self.latmin), (360, self.latmax), (self.lonmin, self.latmax)])
+            p2 = Polygon([(0, self.latmin), (self.lonmax, self.latmin), (self.lonmax, self.latmax), (0, self.latmax)])
+            return GeometryCollection([p1,p2])
 
 
     def get_mask(self):
