@@ -8,7 +8,7 @@ import mw_toolbox as tb
 
 # Global variables
 density_ice = 917 # kg/m3
-
+name_ice = 'GLAC-1D' # Name of the ice sheet reconstruction, TO BE CHANGED IF NEEDED
 
 # Converstion ice sheet eleveation to flux
 def hi_to_discharge(ds_ice, flux_unit='kg/s', keep_negative=False):
@@ -52,8 +52,8 @@ def hi_to_discharge(ds_ice, flux_unit='kg/s', keep_negative=False):
         elif units == 'Sv':
             return delta_elevation * get_surface_matrix(ds_ice) / delta_t * 1e-6, units
         else:
-            print("____ The units are not yet recognised, returning m3/s")
-            return delta_elevation * get_surface_matrix(ds_ice) / delta_t, 'm3/s'
+            print("____ Units not recognised, returning kg/s")
+            return delta_elevation * get_surface_matrix(ds_ice) * density_ice / delta_t, 'm3/s'
 
     
     ds_hice = ds_ice.rename({'T122KP1': 'time', 'XLONGLOBP5': 'lon', 'YLATGLOBP25': 'lat'})
@@ -72,7 +72,8 @@ def hi_to_discharge(ds_ice, flux_unit='kg/s', keep_negative=False):
 
     return flux.rename({'surface_matrix': 'fw_discharge'}).transpose(
         'time', 'lat', 'lon').assign_attrs(
-        {'units':units, 'description': 'Freshwater discharge from the ice sheet'})
+        {'units':units, 
+         'description': f"Freshwater discharge derived from the {name_ice} ice sheet reconstruction"})
 
 
 # Routing method
@@ -88,7 +89,22 @@ def routing(ds_fw, ix, jy):
     print(f"____ Routing method.")
 
     fw_discharge = ds_fw.fw_discharge.values
-    n_t, n_lat, n_lon = fw_discharge.shape
+    source_units = ds_fw.attrs.get('units')
+    
+    if source_units in ['kg/s', 'Sv', 'm3/s']:
+        output_units = source_units
+        print(f"____ No conversion needed, using the input units ({source_units}).")
+    elif source_units=='m/s':
+        print(f"____ Converting from m/s to kg/s.")
+        fw_discharge *= tb.calculate_surface_matrix(ds_fw.lon.values, ds_fw.lat.values) * density_ice
+        output_units= 'kg/s'
+    elif source_units=='kg/m2/s':
+        print(f"____ Converting from m3/s to kg/s.")
+        fw_discharge *= tb.calculate_surface_matrix(ds_fw.lon.values, ds_fw.lat.values) 
+        output_units= 'kg/s'
+    else:
+        raise ValueError(f"____ Units not recognised: {source_units}. Please use 'kg/s', 'Sv', 'm3/s', 'm/s' or 'kg/m2/s'.")
+    
     routed_discharge = np.zeros_like(fw_discharge)
 
     # Create a mask for valid discharge values
@@ -104,7 +120,7 @@ def routing(ds_fw, ix, jy):
     # Create the routed dataset
     ds_routed = xr.Dataset(
         {
-            "fw_routed": (["time", "lat", "lon"], routed_discharge)
+            "fw_discharge": (["time", "lat", "lon"], routed_discharge)
         },
         coords={
             "time": ds_fw.time,
@@ -113,28 +129,39 @@ def routing(ds_fw, ix, jy):
         }
     )
 
-    return ds_routed
+    return ds_routed.assign_attrs(
+        {'units':output_units, 
+         'description': f"Routed freshwater discharge derived from the {name_ice} ice sheet reconstruction"})
 
 
 
 # Overlapping method
-def overlapping(flux_mask, lsm, radius_max=10, verbose=False):
+def overlapping(ds_fw, lsm, radius_max=10, verbose=False):
     """
     Shift the mask points overlapping the land mask to the closet sea point.
-    :param flux_mask: Initial flux mask [t*y*x].
+    :param ds_fw: Dataset containing the flux mask.
     :param lsm: Land sea mask.
     :param radius_max: Maximum radius for the closest sea points. Default is 10.
     :param verbose: Verbose mode. Default is True.
     :return: Processed flux mask [y*x].
     """
 
-    n_j, n_i = flux_mask[0].shape
+    fw_discharge  = ds_fw.fw_discharge.values
+    source_units = ds_fw.attrs.get('units')
 
-    lsm_expanded = lsm.expand_dims({'time': flux_mask.shape[0]})
-    lsm_expanded = lsm_expanded.assign_coords(time=flux_mask.time)
-    overlapping_mask = np.logical_and(flux_mask!=0, lsm_expanded == 1)
+    if source_units in ['kg/s', 'Sv', 'm3/s']:
+        output_units = source_units
+        print(f"____ No conversion needed, using the input units ({source_units}).")
+    else:
+        raise ValueError(f"____ OVerlapping algorithm only works with 'kg/s', 'Sv' or 'm3/s'.")
     
-    shifted_mask = flux_mask * ~overlapping_mask
+    n_j, n_i = fw_discharge[0].shape
+
+    lsm_expanded = lsm.expand_dims({'time': fw_discharge.shape[0]})
+    lsm_expanded = lsm_expanded.assign_coords(time=ds_fw.time)
+    overlapping_mask = np.logical_and(fw_discharge!=0, lsm_expanded == 1)
+    
+    shifted_fw = fw_discharge * ~overlapping_mask
 
     def sea_neighbours(i, j):
         """
@@ -154,12 +181,23 @@ def overlapping(flux_mask, lsm, radius_max=10, verbose=False):
         for j, i in np.argwhere(overlapping_mask[t].values):
             sea_points, radius = sea_neighbours(i, j)
             if verbose:
-                print(f"____ Shifted (t={t}, {i}, {j}): {flux_mask[t, j, i]} -> {sea_points} (Radius {radius})")
+                print(f"____ Shifted (t={t}, {i}, {j}): {fw_discharge[t, j, i]} -> {sea_points} (Radius {radius})")
             for i_sea, j_sea in sea_points:
-                shifted_mask[t, j_sea, i_sea] += flux_mask[t, j, i] / len(sea_points)
+                shifted_fw[t, j_sea, i_sea] += fw_discharge[t, j, i] / len(sea_points)
 
-    return shifted_mask
+    # Create the routed dataset
+    ds_shifted = xr.Dataset(
+        {
+            "fw_discharge": (["time", "y", "x"], shifted_fw)
+        },
+        coords={
+            "time": ds_fw.time,
+        }
+    )
 
+    return ds_shifted.assign_attrs(
+        {'units':output_units, 
+         'description': f"Shifted freshwater discharge derived from the {name_ice} ice sheet reconstruction"})
 
 
 # Spreading method
@@ -206,7 +244,7 @@ def spreading(ds_fw, collection_boxes, spreading_regions, grid):
 class Grid:
     
     def __init__(self, lon, lat, ds_bathy):
-        self.lon, self.lat = self.normalize_lon(lon), lat
+        self.lon, self.lat = self.normalise_lon(lon), lat
         self.x, self.y = ds_bathy.x, ds_bathy.y
         self.bathy = ds_bathy.bathy_metry.isel(time_counter=0)
         self.lsm = self.set_lsm()
@@ -227,9 +265,9 @@ class Grid:
         """
         return xr.where(self.bathy > depth, True, False)
 
-    def normalize_lon(self, lon):
+    def normalise_lon(self, lon):
         """
-        Normalize longitude values to the range [0, 360).
+        Normalise longitude values to the range [0, 360).
         This is useful for consistent geographic representation.
         """
         lon_flat = np.ravel(lon)
@@ -257,14 +295,14 @@ class Grid:
 class CollectionBox:
     
     def __init__(self, lonmin, lonmax, latmin, latmax, region, grid):
-        self.lonmin, self.lonmax= self.normalize_lon(lonmin), self.normalize_lon(lonmax)
+        self.lonmin, self.lonmax= self.normalise_lon(lonmin), self.normalise_lon(lonmax)
         self.latmin, self.latmax= latmin, latmax
         self.region = region
         self.grid= grid
         
-    def normalize_lon(self,lon):
+    def normalise_lon(self,lon):
         """
-        Normalize longitude values to the range [0, 360).
+        Normalise longitude values to the range [0, 360).
         This is useful for consistent geographic representation.
         """
         return (lon + 360) % 360
