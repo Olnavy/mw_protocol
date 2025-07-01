@@ -58,3 +58,16 @@ def calculate_surface_matrix(longitudes:np.array, latitudes:np.array):
             surface_matrix[i, j] = calculate_cell_area(lat1, lat2, lon1, lon2)
     
     return surface_matrix
+
+
+def compute_bounds(ds, lon_name='lon', lat_name='lat'):
+    """
+    Compute bounds for latitude and longitude coordinates in a dataset.
+    
+    :param ds: xarray Dataset containing latitude and longitude coordinates
+    :param lat_name: Name of the latitude coordinate (default is 'lat')
+    :param lon_name: Name of the longitude coordinate (default is 'lon')
+    :return: Dataset with bounds added for latitude and longitude
+    """
+    
+    return ds.cf.add_bounds([lon_name, lat_name])   
