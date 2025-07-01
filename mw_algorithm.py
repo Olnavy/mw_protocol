@@ -1,14 +1,23 @@
+import os
 import numpy as np
 import xarray as xr
 from shapely.geometry import Point, Polygon, GeometryCollection
 from shapely.vectorized import contains as shply_contains
 import json
+import xesmf as xe
 
 import mw_toolbox as tb
 
 # Global variables
 density_ice = 917 # kg/m3
 name_ice = 'GLAC-1D' # Name of the ice sheet reconstruction, TO BE CHANGED IF NEEDED
+name_grid = 'NEMO' # Name of the grid, TO BE CHANGED IF NEEDED
+
+ # ! TO REPLACE WITH YOUR OWN DIRECTORY
+script_directory =os.getcwd()
+
+inputs_folder = f"{script_directory}/inputs"
+outputs_folder = f"{script_directory}/outputs"
 
 # Converstion ice sheet eleveation to flux
 def hi_to_discharge(ds_ice, flux_unit='kg/s', keep_negative=False):
@@ -55,7 +64,8 @@ def hi_to_discharge(ds_ice, flux_unit='kg/s', keep_negative=False):
             print("____ Units not recognised, returning kg/s")
             return delta_elevation * get_surface_matrix(ds_ice) * density_ice / delta_t, 'm3/s'
 
-    
+    print(f"__ Converting ice sheet elevation to freshwater discharge using {flux_unit} units.")
+
     ds_hice = ds_ice.rename({'T122KP1': 'time', 'XLONGLOBP5': 'lon', 'YLATGLOBP25': 'lat'})
     
     # Convert ice thickness to volume flux
@@ -86,7 +96,7 @@ def routing(ds_fw, ix, jy):
     :return: routed mask [lat*lon]
     """
 
-    print(f"____ Routing method.")
+    print(f"__ Routing method.")
 
     fw_discharge = ds_fw.fw_discharge.values
     source_units = ds_fw.attrs.get('units')
@@ -134,6 +144,98 @@ def routing(ds_fw, ix, jy):
          'description': f"Routed freshwater discharge derived from the {name_ice} ice sheet reconstruction"})
 
 
+# Regridding method
+def regridding(ds_fw, ds_ref, method='bilinear', reuse_weights=True):
+    """
+    Regrid the freshwater discharge dataset to a new grid.
+    :param ds_fw: Dataset containing the freshwater discharge.
+    :param ds_bathy: Reference dataset for the new grid.
+    :param method: Regridding method. Default is 'bilinear'.
+    :param reuse_weights: If True, reuse existing weights. Default is False.
+    :param weights: Path to existing weights file. Default is None.
+    :return: Regridded dataset with freshwater discharge.
+    """
+
+    print(f"__ Regridding method using {method} method.")
+    
+    # Check if ds_ref has 'longitude' and 'latitude' variables or coordinates
+    if np.logical_and('longitude' in ds_fw.coords, 'latitude' in ds_fw.coords):
+        pass
+    elif np.logical_and('longitude' in ds_fw.variables and 'latitude' in ds_fw.variables):
+        pass
+    else:
+        raise ValueError("Freshwater dataset must have 'longitude' and 'latitude' as coordinates or variables.")
+
+    # Check if ds_ref has 'longitude' and 'latitude' variables or coordinates
+    if 'longitude' in ds_ref.coords and 'latitude' in ds_ref.coords:
+        pass
+    elif 'longitude' in ds_ref.variables and 'latitude' in ds_ref.variables:
+        pass
+    else:
+        raise ValueError("Ref dataset must have 'longitude' and 'latitude' as coordinates or variables.")
+    
+    # Creating the regridder
+    if reuse_weights:
+        regridder_file = f"regridder_{method}_{name_ice}_{name_grid}.nc"
+        if not os.path.exists(regridder_file):
+    
+            print(f"____ Creating the regridder at {regridder_file}.")
+
+            regridder = xe.Regridder(
+                ds_fw,
+                ds_ref,
+                method=method, 
+                periodic=True
+                )
+
+            regridder.to_netcdf(f"{outputs_folder}/{regridder_file}")
+        else:
+            print(f"____ Reusing the regridder from {regridder_file}.")
+            regridder = xe.Regridder(
+                ds_fw,
+                ds_ref,
+                method=method, 
+                periodic=True,
+                reuse_weights=True,
+                weights=f"{outputs_folder}/{regridder_file}"
+            )
+    else:
+        print(f"____ Creating the regridder.")
+        
+        regridder = xe.Regridder(
+            ds_fw,
+            ds_ref,
+            method=method, 
+            periodic=True
+        )
+
+    # Regrid the dataset.
+    print(f"____ Regridding the freshwater discharge.")
+
+    fw_regridded = regridder(ds_fw['fw_discharge'])
+
+    # Scaling the regridded data
+    scaling_factor = (ds_fw.fw_discharge.sum(['longitude', 'latitude']) / fw_regridded.sum(['y', 'x'])).fillna(0)
+    print(f"____ Scaling factor (mean): {scaling_factor.mean().values:.2f}")
+
+    ds_regridded = xr.Dataset(
+        {
+            "fw_discharge": (["time", "y", "x"], (fw_regridded*scaling_factor).data),
+            "nav_lon": (["y", "x"], ds_ref.longitude.data),
+            "nav_lat": (["y", "x"], ds_ref.latitude.data)
+        },
+        coords={
+            "time": ds_fw.time,
+        },
+        attrs={
+            "units": ds_fw.attrs.get('units'),
+            "description": ds_fw.attrs.get('description')+f" to {name_grid} grid",
+        }
+    )
+
+    return ds_regridded
+
+
 
 # Overlapping method
 def overlapping(ds_fw, lsm, radius_max=10, verbose=False):
@@ -146,6 +248,8 @@ def overlapping(ds_fw, lsm, radius_max=10, verbose=False):
     :return: Processed flux mask [y*x].
     """
 
+    print(f"__ Overlapping method.")
+
     fw_discharge  = ds_fw.fw_discharge.values
     source_units = ds_fw.attrs.get('units')
 
@@ -153,7 +257,7 @@ def overlapping(ds_fw, lsm, radius_max=10, verbose=False):
         output_units = source_units
         print(f"____ No conversion needed, using the input units ({source_units}).")
     else:
-        raise ValueError(f"____ OVerlapping algorithm only works with 'kg/s', 'Sv' or 'm3/s'.")
+        raise ValueError(f"____ Overlapping algorithm only works with 'kg/s', 'Sv' or 'm3/s'.")
     
     n_j, n_i = fw_discharge[0].shape
 
@@ -213,6 +317,7 @@ def spreading(ds_fw, collection_boxes, spreading_regions, grid):
     :return: Spreaded discharge cube [t*y*x].
     """
 
+    print(f"__ Spreading method.")
 
     collection_masks, collection_discharges = {}, {}
     spread_masks, spread_discharges = {}, {}
